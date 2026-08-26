@@ -1,0 +1,7 @@
+# Generated output. Formatting is a source-code concern, and gating CI on the
+# shape of tsc's output would fail the build for reasons no one can fix.
+dist/
+coverage/
+
+# Managed by npm; reformatting it produces churn on every install.
+package-lock.json

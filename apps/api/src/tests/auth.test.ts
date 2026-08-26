@@ -100,7 +100,9 @@ describe('POST /api/auth/register', () => {
   it('sets the refresh token only as an httpOnly cookie, never in the body', async () => {
     const { response, refreshCookie } = await registerUser();
     const rawSetCookie = response.headers['set-cookie'] as unknown as string[];
-    const fullCookie = rawSetCookie.find((entry) => entry.startsWith(`${REFRESH_TOKEN_COOKIE_NAME}=`));
+    const fullCookie = rawSetCookie.find((entry) =>
+      entry.startsWith(`${REFRESH_TOKEN_COOKIE_NAME}=`),
+    );
     expect(fullCookie).toBeDefined();
     expect(fullCookie).toMatch(/HttpOnly/i);
 
@@ -153,7 +155,9 @@ describe('POST /api/auth/login', () => {
     const email = uniqueEmail();
     await registerUser({ email });
 
-    const response = await request(app).post('/api/auth/login').send({ email, password: VALID_PASSWORD });
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email, password: VALID_PASSWORD });
     expect(response.status).toBe(200);
     const body = response.body as AuthSuccessBody;
     expect(body.accessToken.length).toBeGreaterThan(0);
@@ -167,7 +171,9 @@ describe('POST /api/auth/login', () => {
     const email = uniqueEmail();
     await registerUser({ email });
 
-    const wrongPassword = await request(app).post('/api/auth/login').send({ email, password: 'wrong-password' });
+    const wrongPassword = await request(app)
+      .post('/api/auth/login')
+      .send({ email, password: 'wrong-password' });
     const unknownEmail = await request(app)
       .post('/api/auth/login')
       .send({ email: uniqueEmail(), password: VALID_PASSWORD });
@@ -187,7 +193,9 @@ describe('GET /api/auth/me', () => {
   });
 
   it('rejects a garbage bearer token', async () => {
-    const response = await request(app).get('/api/auth/me').set('Authorization', 'Bearer not-a-real-token');
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', 'Bearer not-a-real-token');
     expect(response.status).toBe(401);
   });
 
@@ -195,7 +203,9 @@ describe('GET /api/auth/me', () => {
     const email = uniqueEmail();
     const { accessToken } = await registerUser({ email });
 
-    const response = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
+    const response = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${accessToken}`);
     expect(response.status).toBe(200);
     const user = response.body as PublicUser;
     expect(user.email).toBe(email);

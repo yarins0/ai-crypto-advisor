@@ -37,13 +37,13 @@ The web app runs on <http://localhost:5173>. The API runs on <http://localhost:4
 
 ## Scripts
 
-| Command | Effect |
-| --- | --- |
-| `npm run dev` | Start the api and the web app together |
-| `npm run build` | Build every workspace |
-| `npm run lint` | ESLint over the repository |
-| `npm run typecheck` | TypeScript over every workspace |
-| `npm test` | Vitest over every workspace |
+| Command             | Effect                                 |
+| ------------------- | -------------------------------------- |
+| `npm run dev`       | Start the api and the web app together |
+| `npm run build`     | Build every workspace                  |
+| `npm run lint`      | ESLint over the repository             |
+| `npm run typecheck` | TypeScript over every workspace        |
+| `npm test`          | Vitest over every workspace            |
 
 ## Reviewer access
 

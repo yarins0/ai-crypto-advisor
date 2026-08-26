@@ -8,7 +8,13 @@ import { env, isProduction } from '../../env.js';
 import { HttpError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/require-auth.js';
 import { validateBody } from '../../middleware/validate-body.js';
-import { getPublicUser, loginUser, registerUser, revokeRefreshToken, rotateRefreshToken } from './service.js';
+import {
+  getPublicUser,
+  loginUser,
+  registerUser,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} from './service.js';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const MS_PER_SECOND = 1000;
@@ -70,12 +76,17 @@ function readRefreshTokenCookie(req: Request): string | undefined {
 
 export const authRouter: Router = Router();
 
-authRouter.post('/register', registerRateLimiter, validateBody(registerRequestSchema), async (req, res) => {
-  const session = await registerUser(req.body);
-  // The raw refresh token rides the cookie only — it must never appear in a JSON body.
-  res.cookie(REFRESH_COOKIE_NAME, session.refreshToken, refreshCookieOptions);
-  res.status(201).json({ user: session.user, accessToken: session.accessToken });
-});
+authRouter.post(
+  '/register',
+  registerRateLimiter,
+  validateBody(registerRequestSchema),
+  async (req, res) => {
+    const session = await registerUser(req.body);
+    // The raw refresh token rides the cookie only — it must never appear in a JSON body.
+    res.cookie(REFRESH_COOKIE_NAME, session.refreshToken, refreshCookieOptions);
+    res.status(201).json({ user: session.user, accessToken: session.accessToken });
+  },
+);
 
 authRouter.post('/login', loginRateLimiter, validateBody(loginRequestSchema), async (req, res) => {
   const session = await loginUser(req.body);

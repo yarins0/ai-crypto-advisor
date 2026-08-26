@@ -32,7 +32,12 @@ function buildValidationFields(error: ZodError): Record<string, string> {
  * Express identifies this as an error handler by its four-parameter arity,
  * so all four must stay declared even when unused.
  */
-export function errorHandler(error: unknown, _req: Request, res: Response, next: NextFunction): void {
+export function errorHandler(
+  error: unknown,
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (res.headersSent) {
     next(error);
     return;

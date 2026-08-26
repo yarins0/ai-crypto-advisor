@@ -25,4 +25,7 @@ const refreshTokenSchema = new Schema<RefreshTokenAttributes>(
 // `expiresAt` is in the past, so expired tokens self-clean with no cron job.
 refreshTokenSchema.index({ expiresAt: 1 }, { expires: 0 });
 
-export const RefreshTokenModel = mongoose.model<RefreshTokenAttributes>('RefreshToken', refreshTokenSchema);
+export const RefreshTokenModel = mongoose.model<RefreshTokenAttributes>(
+  'RefreshToken',
+  refreshTokenSchema,
+);
