@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+
+/* Dark trading-terminal base. Full token set arrives with the theme pass in M6. */
+@theme {
+  --color-surface: oklch(0.21 0.02 260);
+  --color-surface-raised: oklch(0.26 0.02 260);
+  --color-up: oklch(0.72 0.18 150);
+  --color-down: oklch(0.65 0.2 25);
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+}
