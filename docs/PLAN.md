@@ -125,9 +125,10 @@ the client never learns which third-party APIs exist.
 
 ## 6. Resilience — the part that actually matters
 
-Every free API in this brief will fail during a review. CoinGecko rate-limits, CryptoPanic's
-free tier is restrictive, Hugging Face cold-starts, and Reddit blocks datacenter IPs
-outright. So each integration goes through one helper with a three-tier degradation path:
+Every free API in this brief will fail during a review. CoinGecko rate-limits, the
+Cointelegraph RSS feed can go down or change shape, Hugging Face cold-starts, and Reddit
+blocks datacenter IPs outright. So each integration goes through one helper with a
+three-tier degradation path:
 
 ```
 live fetch  →  stale cache (serve expired data rather than nothing)  →  committed static fallback
@@ -141,7 +142,7 @@ forever is not.
 | Integration | Endpoint | TTL | Fallback |
 | --- | --- | --- | --- |
 | Coin prices | CoinGecko `/coins/markets` with `sparkline=true` | 60s | Stale cache, then static snapshot. One call returns price *and* 7-day sparkline. |
-| News | CryptoPanic `/v1/posts` filtered to the user's assets | 10 min | Stale cache, then a committed `news.fallback.json`. |
+| News | Cointelegraph RSS (`cointelegraph.com/rss`, per-coin via `/rss/tag/<coin>`) | 10 min | Stale cache, then a committed `news.fallback.json`. |
 | AI insight | HF router, OpenAI-compatible chat completions | 24h per user | Deterministic templated insight built from *real* market data — degraded, but never fabricated. |
 | Meme | Static curated JSON (primary) + opportunistic Reddit `.json` | — | Static JSON is the primary source precisely because Reddit will block Render's IPs. |
 
@@ -159,7 +160,7 @@ literally what "Insight of the **Day**" means.
 | M4 | Dashboard + votes | Parallel composition endpoint, vote upsert, summary aggregation |
 | M5 | Web core | Auth screens, onboarding wizard, dashboard shell, voting with optimistic updates |
 | M6 | Polish | Dark terminal theme, sparklines, skeletons, empty/error/stale states, responsive pass |
-| M7 | Deploy | Atlas cluster, Render service, Vercel project, seed demo account, smoke test |
+| M7 | Deploy | Atlas cluster, Render service, Vercel project, seed demo account, smoke test, verify the read-only review user |
 | M8 | Docs | README with setup + reviewer credentials, ARCHITECTURE, training-loop write-up, interaction summary |
 
 M1–M4 are backend and independently testable; M5–M6 are frontend. M7 happens early enough
@@ -172,7 +173,7 @@ not an afterthought.
 | --- | --- | --- |
 | Render free tier sleeps after 15 min idle → ~50s cold start when a reviewer opens the link | High | Keep-warm ping from a GitHub Actions schedule; honest loading state; documented in the README |
 | CoinGecko rate-limits (free tier is tight) | High | Server-side shared cache — one upstream call serves all users, not one per user |
-| CryptoPanic free token restrictions / API changes | Medium | Committed static fallback; news is never the reason the page fails |
+| Cointelegraph RSS structure changes, or a tag feed doesn't exist for a chosen coin | Medium | Committed static fallback; news is never the reason the page fails |
 | HF free inference cold-start or model deprecation | High | Model id is env-configurable; deterministic fallback insight from real market data |
 | Reddit blocks cloud IPs | High | Static meme JSON is the primary source, not the fallback |
 | Atlas requires an IP allowlist Render can't predict | Medium | Allow `0.0.0.0/0` with a strong generated password (standard for PaaS-hosted apps) |
@@ -184,7 +185,7 @@ Answered by the developer on 2026-08-26:
 
 | Question | Answer | What it means for the build |
 | --- | --- | --- |
-| CryptoPanic token | Developer will obtain one | News runs live. The static fallback still ships, but as a degradation path rather than the primary source. |
+| News source | Cointelegraph RSS, not CryptoPanic | No visible CryptoPanic free tier at signup time. RSS needs no key, no signup, no rate limit — verified live 2026-08-26 (200 OK, 30 items, valid RSS 2.0, works with no User-Agent). Per-coin filtering uses `cointelegraph.com/rss/tag/<coin>`, confirmed to exist for Bitcoin; coverage for every onboarding asset choice is not yet confirmed and should be spot-checked in M3. |
 | Reviewer DB access | Read-only Atlas user, credentials sent **in the submission email** | Nothing sensitive enters the public repo. |
 | Demo account | Credentials sent **in the submission email** | `demo@aicryptoadvisor.app` (or similar), pre-seeded with completed onboarding, realistic preferences and a spread of votes, so a reviewer sees a populated dashboard on first load. |
 | Domain | Default `*.vercel.app` is fine | No DNS work. Backend stays on `*.onrender.com`; CORS allowlist is env-driven. |
@@ -206,6 +207,25 @@ Rules that follow from this:
 - The README points reviewers at the submission email for access, so the deliverable is
   still discoverable from the repo.
 - Rotate both the Atlas user and the demo password once the review window closes.
+
+### M7 verification step: confirm the review user actually works
+
+Before sending credentials in the submission email, verify them from a clean, unauthenticated
+shell — not the machine that created the user, which may have a cached connection or a
+whitelisted IP:
+
+1. Connect with the exact connection string a reviewer would use:
+   `mongosh "mongodb+srv://review-readonly:<password>@<cluster>.mongodb.net/<db-name>"`.
+2. Confirm read access: run a `find` on a seeded collection (e.g. `db.users.find().limit(1)`)
+   and confirm it returns data.
+3. Confirm write access is blocked: attempt `db.users.insertOne({})` and confirm it fails with
+   an authorization error, not a network or auth error — this is what proves the role is
+   `read`, not `readWrite`.
+4. Confirm database scope: attempt to read a collection in a **different** database on the
+   same cluster and confirm that also fails — this is what proves the user is scoped to the
+   single application database, not cluster-wide.
+5. Only send the credentials once all three checks (read succeeds, write fails, cross-database
+   read fails) pass.
 
 ## 10. Bonus deliverable — the training-loop write-up
 
