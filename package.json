@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "smoke": "node scripts/smoke-auth.mjs"
+    "smoke": "node scripts/smoke-auth.mjs",
+    "check:integrations": "node scripts/check-integrations.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

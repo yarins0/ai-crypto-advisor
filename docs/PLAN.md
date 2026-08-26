@@ -103,9 +103,10 @@ Vote            { userId, section, itemId, itemType, value: 1 | -1,
                   timestamps }
                   // unique index (userId, section, itemId) → re-vote updates, never duplicates
 
-ContentCache    { key (unique), payload, source, fetchedAt, expiresAt }
-                  // TTL index on expiresAt; shared across all users, so one CoinGecko call
-                  // serves every concurrent visitor
+ContentCache    { key (unique), payload, fetchedAt }
+                  // TTL index on fetchedAt purges after 7 days, far past any logical TTL:
+                  // the stale tier serves already-expired rows, so freshness is computed
+                  // in code, never stored. Shared across users — one call serves everyone.
 
 RefreshToken    { userId, tokenHash, expiresAt, revokedAt }
 ```
@@ -161,12 +162,29 @@ Every section in the dashboard response carries `source: 'live' | 'cache' | 'fal
 five-minute-old prices with a quiet "updated 5m ago" is good UX; showing them a spinner
 forever is not.
 
-| Integration | Endpoint                                                                    | TTL          | Fallback                                                                                        |
-| ----------- | --------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| Coin prices | CoinGecko `/coins/markets` with `sparkline=true`                            | 60s          | Stale cache, then static snapshot. One call returns price _and_ 7-day sparkline.                |
-| News        | Cointelegraph RSS (`cointelegraph.com/rss`, per-coin via `/rss/tag/<coin>`) | 10 min       | Stale cache, then a committed `news.fallback.json`.                                             |
-| AI insight  | HF router, OpenAI-compatible chat completions                               | 24h per user | Deterministic templated insight built from _real_ market data — degraded, but never fabricated. |
-| Meme        | Static curated JSON (primary) + opportunistic Reddit `.json`                | —            | Static JSON is the primary source precisely because Reddit will block Render's IPs.             |
+`source` names which tier answered, not where the bytes came from. A cache hit inside its
+TTL is `live`; `cache` means specifically that the data is stale and was served anyway.
+Reporting every cache hit as `cache` would leave the badge lit on almost every render,
+which conveys nothing.
+
+| Integration | Endpoint                                                                        | TTL          | Fallback                                                                                        |
+| ----------- | ------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| Coin prices | CoinGecko `/coins/markets` with `sparkline=true`, all curated ids under one key | 60s          | Stale cache, then `fallbacks/coins.ts`. One call returns price _and_ 7-day sparkline.           |
+| News        | Cointelegraph RSS, per-coin via `/rss/tag/<slug>`                               | 10 min       | Stale cache, then `fallbacks/news.ts`.                                                          |
+| AI insight  | HF router, OpenAI-compatible chat completions                                   | 24h per user | Deterministic templated insight built from _real_ market data — degraded, but never fabricated. |
+| Meme        | Static curated list, no upstream                                                | —            | None needed: the curated list is the source, not a fallback.                                    |
+
+The news slug is the CoinGecko id for 13 of the 15 curated assets. Two differ and are
+overridden: `binancecoin` → `bnb`, `avalanche-2` → `avalanche`. All 15 verified live on
+2026-08-26 (200, 30 items each).
+
+Prices are fetched for every curated id under a single cache key rather than per user, so
+the shared-cache mitigation in §8 holds: keying on a user's asset set would produce a
+distinct upstream call per distinct preference set.
+
+Reddit is not called at all. §8 rates "Reddit blocks cloud IPs" as High, and the curated
+list is already the primary source — an opportunistic branch that never succeeds in
+production is code that does not need to exist.
 
 The AI insight is cached per user per calendar day, which is both a rate-limit defence and
 literally what "Insight of the **Day**" means.
@@ -205,14 +223,14 @@ not an afterthought.
 
 Answered by the developer on 2026-08-26:
 
-| Question                | Answer                                                                                                    | What it means for the build                                                                                                                                                                                                                                                                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| News source             | Cointelegraph RSS, not CryptoPanic                                                                        | No visible CryptoPanic free tier at signup time. RSS needs no key, no signup, no rate limit — verified live 2026-08-26 (200 OK, 30 items, valid RSS 2.0, works with no User-Agent). Per-coin filtering uses `cointelegraph.com/rss/tag/<coin>`, confirmed to exist for Bitcoin; coverage for every onboarding asset choice is not yet confirmed and should be spot-checked in M3. |
-| Reviewer DB access      | Read-only Atlas user, credentials sent **in the submission email**                                        | Nothing sensitive enters the public repo.                                                                                                                                                                                                                                                                                                                                         |
-| Demo account            | Credentials sent **in the submission email**                                                              | `demo@aicryptoadvisor.app` (or similar), pre-seeded with completed onboarding, realistic preferences and a spread of votes, so a reviewer sees a populated dashboard on first load.                                                                                                                                                                                               |
-| Domain                  | Default `*.vercel.app` is fine                                                                            | No DNS work. Backend stays on `*.onrender.com`.                                                                                                                                                                                                                                                                                                                                   |
-| Refresh-token transport | httpOnly cookie, with the API proxied under the web app's own domain                                      | See "One site, not two" below.                                                                                                                                                                                                                                                                                                                                                    |
-| Refresh-token storage   | HMAC-SHA256 with a server-side pepper (`REFRESH_TOKEN_PEPPER`), replacing the unused `JWT_REFRESH_SECRET` | The refresh token is a random string, not a JWT, so a JWT secret had no consumer. The pepper means read-only database access alone cannot match a captured token to its row — which matters, because M7 hands exactly that access to a reviewer.                                                                                                                                  |
+| Question                | Answer                                                                                                    | What it means for the build                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| News source             | Cointelegraph RSS, not CryptoPanic                                                                        | No visible CryptoPanic free tier at signup time. RSS needs no key, no signup, no rate limit — verified live 2026-08-26 (200 OK, 30 items, valid RSS 2.0, works with no User-Agent). Per-coin filtering uses `cointelegraph.com/rss/tag/<slug>`. Coverage was spot-checked across all 15 curated assets on 2026-08-26: 13 work with the CoinGecko id as the slug, and `binancecoin` and `avalanche-2` return 404 and are overridden to `bnb` and `avalanche` (see §6). |
+| Reviewer DB access      | Read-only Atlas user, credentials sent **in the submission email**                                        | Nothing sensitive enters the public repo.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Demo account            | Credentials sent **in the submission email**                                                              | `demo@aicryptoadvisor.app` (or similar), pre-seeded with completed onboarding, realistic preferences and a spread of votes, so a reviewer sees a populated dashboard on first load.                                                                                                                                                                                                                                                                                   |
+| Domain                  | Default `*.vercel.app` is fine                                                                            | No DNS work. Backend stays on `*.onrender.com`.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Refresh-token transport | httpOnly cookie, with the API proxied under the web app's own domain                                      | See "One site, not two" below.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Refresh-token storage   | HMAC-SHA256 with a server-side pepper (`REFRESH_TOKEN_PEPPER`), replacing the unused `JWT_REFRESH_SECRET` | The refresh token is a random string, not a JWT, so a JWT secret had no consumer. The pepper means read-only database access alone cannot match a captured token to its row — which matters, because M7 hands exactly that access to a reviewer.                                                                                                                                                                                                                      |
 
 ### One site, not two: the API is proxied under the web app's domain
 

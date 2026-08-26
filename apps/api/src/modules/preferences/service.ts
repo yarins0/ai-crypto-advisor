@@ -7,7 +7,7 @@ import type {
   PreferencesResponse,
   RiskTolerance,
 } from '@aca/shared';
-import { contentTypes, investorTypes, riskTolerances } from '@aca/shared';
+import { contentTypes, curatedAssets, investorTypes, riskTolerances } from '@aca/shared';
 
 import { UserModel } from '../auth/user.model.js';
 import { PreferenceModel } from './model.js';
@@ -36,29 +36,6 @@ const RISK_TOLERANCE_LABELS: Record<RiskTolerance, string> = {
   high: 'High',
 };
 
-/**
- * CoinGecko ids for a curated set of well-known coins. Static rather than
- * fetched live: M3 is what introduces the CoinGecko client, so nothing yet
- * can validate an arbitrary id against CoinGecko's own coin list.
- */
-const CURATED_ASSETS: OnboardingQuestionOption[] = [
-  { value: 'bitcoin', label: 'Bitcoin' },
-  { value: 'ethereum', label: 'Ethereum' },
-  { value: 'solana', label: 'Solana' },
-  { value: 'binancecoin', label: 'BNB' },
-  { value: 'ripple', label: 'XRP' },
-  { value: 'cardano', label: 'Cardano' },
-  { value: 'dogecoin', label: 'Dogecoin' },
-  { value: 'polkadot', label: 'Polkadot' },
-  { value: 'chainlink', label: 'Chainlink' },
-  { value: 'litecoin', label: 'Litecoin' },
-  { value: 'avalanche-2', label: 'Avalanche' },
-  { value: 'tron', label: 'TRON' },
-  { value: 'stellar', label: 'Stellar' },
-  { value: 'uniswap', label: 'Uniswap' },
-  { value: 'cosmos', label: 'Cosmos' },
-];
-
 function toOptions<TValue extends string>(
   values: readonly TValue[],
   labels: Record<TValue, string>,
@@ -73,7 +50,7 @@ export function getOnboardingQuestions(): OnboardingQuestion[] {
       id: 'assets',
       label: 'Which coins do you want to track?',
       type: 'multi-select',
-      options: CURATED_ASSETS,
+      options: [...curatedAssets],
       min: MIN_ASSETS,
       max: MAX_ASSETS,
     },

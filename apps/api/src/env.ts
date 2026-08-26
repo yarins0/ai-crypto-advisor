@@ -24,6 +24,16 @@ const envSchema = z.object({
   /** A jsonwebtoken duration string, for example '15m' or '1h'. */
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
+  /**
+   * Optional so the API still boots with no Hugging Face account configured.
+   * A missing token makes the insight client throw, which the cache helper
+   * degrades like any other upstream failure.
+   */
+  HUGGINGFACE_API_TOKEN: z.string().optional(),
+
+  /** Configurable because free-tier model ids are deprecated without notice. */
+  HUGGINGFACE_MODEL: z.string().default('meta-llama/Llama-3.1-8B-Instruct'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
