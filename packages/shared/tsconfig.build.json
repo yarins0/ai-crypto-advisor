@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
     "outDir": "dist",
     "module": "NodeNext",
     "moduleResolution": "nodenext"
-  },
-  "exclude": ["src/tests"]
+  }
 }

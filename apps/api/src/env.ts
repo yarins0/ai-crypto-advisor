@@ -8,6 +8,34 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
+
+  MONGODB_URI: z.string().min(1),
+
+  /** Signs the access-token JWTs. A short secret is brute-forceable offline. */
+  JWT_ACCESS_SECRET: z.string().min(32),
+
+  /**
+   * Mixed into every refresh-token hash before storage. Read access to the
+   * database alone then cannot match a captured token to its stored row, which
+   * matters because a read-only database user is given to reviewers.
+   */
+  REFRESH_TOKEN_PEPPER: z.string().min(32),
+
+  /** A jsonwebtoken duration string, for example '15m' or '1h'. */
+  ACCESS_TOKEN_TTL: z.string().default('15m'),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.safeParse(process.env);
+
+// A raw ZodError at boot is unreadable. Name the offending variables instead.
+if (!parsedEnv.success) {
+  const problems = parsedEnv.error.issues
+    .map((issue) => `  ${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+  throw new Error(`Invalid environment configuration:\n${problems}`);
+}
+
+export const env = parsedEnv.data;
+
+export const isProduction = env.NODE_ENV === 'production';

@@ -52,7 +52,7 @@ npm workspaces monorepo, so the client and server share DTO types and can't drif
 │       └── src/
 │           ├── modules/     # auth · preferences · dashboard · votes
 │           │   └── <mod>/   # route.ts · service.ts · model.ts · schema.ts
-│           ├── integrations/# coingecko · cryptopanic · huggingface · memes
+│           ├── integrations/# coingecko · cointelegraph · huggingface · memes
 │           ├── lib/         # cache, http client, logger, errors
 │           └── middleware/  # auth guard, validation, error handler
 ├── packages/shared/         # Zod schemas + inferred TS types, used by both apps
@@ -60,10 +60,26 @@ npm workspaces monorepo, so the client and server share DTO types and can't drif
 └── .github/workflows/ci.yml
 ```
 
-**Trade-off, flagged for ratification:** workspaces mean Vercel and Render both need a root
-install with a scoped build (`npm ci` at root, `npm run build -w apps/web`). That's a few
-lines of deploy config in exchange for a single source of truth for API contracts. If deploy
-friction bites, the fallback is to inline the shared types into each app.
+**Trade-off, ratified in M1:** the workspace is kept, and `packages/shared` gains a real
+build step.
+
+The friction this paragraph predicted arrived immediately. With `exports` pointing at
+`./src/index.ts`, `npm run build` succeeded but the emitted `dist/**/*.js` still imported
+`@aca/shared` — a TypeScript file Node cannot load — so `npm start` would have failed on
+Render after a green build. Rather than inline the types and accept two copies of the API
+contract that will drift, `packages/shared` now compiles to `dist/` (JS plus `.d.ts`) and
+its `exports` point there.
+
+Two details make the ordering safe:
+
+- The root `workspaces` array lists `packages/*` before `apps/*`, so `npm run build` at the
+  root builds the shared package before anything consumes it.
+- `packages/shared` has a `prepare` script, which npm runs automatically after any install.
+  A fresh clone therefore has `dist/` before the first `typecheck`, and CI needs no extra step.
+
+Deploy still needs a root install with a scoped build (`npm ci` at root, then
+`npm run build -w apps/web`), which is a few lines of config in exchange for a single
+source of truth for API contracts.
 
 ## 4. Data model
 
@@ -101,11 +117,11 @@ force when the item was served, or the training data is worthless.
 ## 5. API surface
 
 ```
-POST   /api/auth/register        → { user, accessToken } + refresh cookie
-POST   /api/auth/login
-POST   /api/auth/refresh
-POST   /api/auth/logout
-GET    /api/auth/me
+POST   /api/auth/register        → 201 { user, accessToken } + refresh cookie
+POST   /api/auth/login           → 200 { user, accessToken } + refresh cookie
+POST   /api/auth/refresh         → 200 { user, accessToken } + rotated refresh cookie
+POST   /api/auth/logout          → 204, clears the refresh cookie
+GET    /api/auth/me              → 200 PublicUser
 
 GET    /api/onboarding/questions → server-driven quiz definition (client renders, doesn't hardcode)
 GET    /api/preferences
@@ -122,6 +138,12 @@ GET    /api/health
 
 `GET /api/dashboard` composes all four sections server-side in parallel. One round trip, and
 the client never learns which third-party APIs exist.
+
+Every error response uses one shape: `{ error: string, fields?: Record<string, string> }`.
+A Zod validation failure fills `fields`; nothing else does.
+
+The refresh token is delivered **only** as an httpOnly cookie (`refresh_token`, `Path=/api/auth`),
+never in a response body. The access token is the opposite: body only, never a cookie.
 
 ## 6. Resilience — the part that actually matters
 
@@ -188,7 +210,30 @@ Answered by the developer on 2026-08-26:
 | News source | Cointelegraph RSS, not CryptoPanic | No visible CryptoPanic free tier at signup time. RSS needs no key, no signup, no rate limit — verified live 2026-08-26 (200 OK, 30 items, valid RSS 2.0, works with no User-Agent). Per-coin filtering uses `cointelegraph.com/rss/tag/<coin>`, confirmed to exist for Bitcoin; coverage for every onboarding asset choice is not yet confirmed and should be spot-checked in M3. |
 | Reviewer DB access | Read-only Atlas user, credentials sent **in the submission email** | Nothing sensitive enters the public repo. |
 | Demo account | Credentials sent **in the submission email** | `demo@aicryptoadvisor.app` (or similar), pre-seeded with completed onboarding, realistic preferences and a spread of votes, so a reviewer sees a populated dashboard on first load. |
-| Domain | Default `*.vercel.app` is fine | No DNS work. Backend stays on `*.onrender.com`; CORS allowlist is env-driven. |
+| Domain | Default `*.vercel.app` is fine | No DNS work. Backend stays on `*.onrender.com`. |
+| Refresh-token transport | httpOnly cookie, with the API proxied under the web app's own domain | See "One site, not two" below. |
+| Refresh-token storage | HMAC-SHA256 with a server-side pepper (`REFRESH_TOKEN_PEPPER`), replacing the unused `JWT_REFRESH_SECRET` | The refresh token is a random string, not a JWT, so a JWT secret had no consumer. The pepper means read-only database access alone cannot match a captured token to its row — which matters, because M7 hands exactly that access to a reviewer. |
+
+### One site, not two: the API is proxied under the web app's domain
+
+The refresh token lives in an httpOnly cookie, so page JavaScript cannot read it and an XSS
+bug cannot steal a session. That choice forces a second one.
+
+A cookie shared between `*.vercel.app` and `*.onrender.com` is a **third-party cookie**. It
+needs `SameSite=None`, and Safari blocks that by default, as do Brave and Chrome incognito.
+A reviewer would log in and appear logged out on the next page load.
+
+So Vercel rewrites `/api/(.*)` to the Render service. The browser sees one origin. Three
+things follow:
+
+- The cookie is first-party and can use `SameSite=Lax`, which by itself blocks CSRF on the
+  `POST`-only refresh and logout routes. No CSRF-token machinery is needed.
+- CORS stops being load-bearing. `WEB_ORIGIN` and the `cors` middleware stay for direct
+  local development against `localhost:4000`, not for production.
+- The web client calls the relative path `/api/...`. `VITE_API_URL` becomes a
+  local-development override only (M5).
+
+Cost: a `vercel.json` `rewrites` block (M7) and one extra network hop.
 
 ### Credential handling
 
