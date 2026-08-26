@@ -17,8 +17,39 @@ export const preferencesResponseSchema = preferencesRequestSchema.extend({
   updatedAt: z.string().datetime(),
 });
 
+// Wrapped, not a bare nullable, because a user with no preferences yet is the
+// routine state for every fresh signup, not an error GET should reject with.
+export const preferencesGetResponseSchema = z.object({
+  preferences: preferencesResponseSchema.nullable(),
+});
+
+const onboardingQuestionIds = ['assets', 'investorType', 'contentTypes', 'riskTolerance'] as const;
+const onboardingQuestionTypes = ['single-select', 'multi-select'] as const;
+
+export const onboardingQuestionOptionSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+});
+
+export const onboardingQuestionSchema = z.object({
+  id: z.enum(onboardingQuestionIds),
+  label: z.string(),
+  type: z.enum(onboardingQuestionTypes),
+  options: z.array(onboardingQuestionOptionSchema),
+  min: z.number().int().positive().optional(),
+  max: z.number().int().positive().optional(),
+});
+
+export const onboardingQuestionsResponseSchema = z.object({
+  questions: z.array(onboardingQuestionSchema),
+});
+
 export type InvestorType = (typeof investorTypes)[number];
 export type ContentType = (typeof contentTypes)[number];
 export type RiskTolerance = (typeof riskTolerances)[number];
 export type PreferencesRequest = z.infer<typeof preferencesRequestSchema>;
 export type PreferencesResponse = z.infer<typeof preferencesResponseSchema>;
+export type PreferencesGetResponse = z.infer<typeof preferencesGetResponseSchema>;
+export type OnboardingQuestionOption = z.infer<typeof onboardingQuestionOptionSchema>;
+export type OnboardingQuestion = z.infer<typeof onboardingQuestionSchema>;
+export type OnboardingQuestionsResponse = z.infer<typeof onboardingQuestionsResponseSchema>;

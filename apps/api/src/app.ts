@@ -3,7 +3,9 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 import { env } from './env.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { requireAuth } from './middleware/require-auth.js';
 import { authRouter } from './modules/auth/route.js';
+import { preferencesRouter } from './modules/preferences/route.js';
 
 /**
  * Render and Vercel each put exactly one proxy in front of the service. Express
@@ -30,6 +32,7 @@ export function createApp(): Express {
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api', requireAuth, preferencesRouter);
 
   // Last on purpose: Express reaches an error handler only after every route
   // above has declined or thrown.

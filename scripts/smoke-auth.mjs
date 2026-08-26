@@ -1,7 +1,7 @@
 /**
- * Smoke test for the authentication API (M1): drives a running server end to
- * end over HTTP and prints a pass/fail line for every behaviour the milestone
- * promises. Complements the unit suite, which runs against an in-memory
+ * Smoke test for the auth (M1) and preferences (M2) APIs: drives a running
+ * server end to end over HTTP and prints a pass/fail line for every behaviour
+ * each milestone promises. Complements the unit suite, which runs against an in-memory
  * database and so cannot prove cookie attributes, index enforcement or
  * refresh-token rotation against a real deployment.
  *
@@ -181,6 +181,97 @@ async function main() {
 
   const logoutNoCookie = await call('/api/auth/logout', { method: 'POST' });
   check('logout with no cookie is still 204 (idempotent)', logoutNoCookie.status === 204);
+
+  // --- onboarding + preferences --------------------------------------------
+  const accessToken = register.body?.accessToken;
+
+  const preferencesAnonymous = await call('/api/preferences');
+  check('GET /preferences without a token returns 401', preferencesAnonymous.status === 401);
+
+  const questionsAnonymous = await call('/api/onboarding/questions');
+  check('GET /onboarding/questions without a token returns 401', questionsAnonymous.status === 401);
+
+  const questions = await call('/api/onboarding/questions', { accessToken });
+  check('GET /onboarding/questions returns 200', questions.status === 200);
+  const questionIds = questions.body?.questions?.map((question) => question.id);
+  check(
+    'onboarding has exactly the 4 expected questions in order',
+    JSON.stringify(questionIds) ===
+      JSON.stringify(['assets', 'investorType', 'contentTypes', 'riskTolerance']),
+    JSON.stringify(questionIds),
+  );
+
+  const preferencesBeforeSubmission = await call('/api/preferences', { accessToken });
+  check(
+    'GET /preferences returns 200 before any submission',
+    preferencesBeforeSubmission.status === 200,
+  );
+  check(
+    'preferences is null before any submission',
+    preferencesBeforeSubmission.body?.preferences === null,
+  );
+
+  const invalidPreferences = await call('/api/preferences', {
+    method: 'PUT',
+    accessToken,
+    body: {
+      assets: ['bitcoin'],
+      investorType: 'whale',
+      contentTypes: ['news'],
+      riskTolerance: 'low',
+    },
+  });
+  check('PUT /preferences with a bad investorType returns 400', invalidPreferences.status === 400);
+  check(
+    'validation error names investorType',
+    Boolean(invalidPreferences.body?.fields?.investorType),
+  );
+
+  const firstSubmission = await call('/api/preferences', {
+    method: 'PUT',
+    accessToken,
+    body: {
+      assets: ['bitcoin', 'ethereum'],
+      investorType: 'hodler',
+      contentTypes: ['news', 'prices'],
+      riskTolerance: 'medium',
+    },
+  });
+  check('first PUT /preferences returns 200', firstSubmission.status === 200);
+  check(
+    'first PUT /preferences starts at version 1',
+    firstSubmission.body?.preferences?.version === 1,
+  );
+
+  const meAfterFirstSubmission = await call('/api/auth/me', { accessToken });
+  check(
+    'onboardedAt is set after the first submission',
+    meAfterFirstSubmission.body?.onboardedAt !== null,
+  );
+  const onboardedAtAfterFirstSubmission = meAfterFirstSubmission.body?.onboardedAt;
+
+  const secondSubmission = await call('/api/preferences', {
+    method: 'PUT',
+    accessToken,
+    body: {
+      assets: ['solana'],
+      investorType: 'day_trader',
+      contentTypes: ['memes'],
+      riskTolerance: 'high',
+    },
+  });
+  check('second PUT /preferences returns 200', secondSubmission.status === 200);
+  check(
+    'second PUT /preferences bumps version to 2',
+    secondSubmission.body?.preferences?.version === 2,
+  );
+
+  const meAfterSecondSubmission = await call('/api/auth/me', { accessToken });
+  check(
+    'onboardedAt is unchanged by the second submission',
+    meAfterSecondSubmission.body?.onboardedAt === onboardedAtAfterFirstSubmission,
+    `first ${onboardedAtAfterFirstSubmission} vs second ${meAfterSecondSubmission.body?.onboardedAt}`,
+  );
 
   // --- summary ------------------------------------------------------------
   const failed = results.filter((entry) => !entry.didPass);
