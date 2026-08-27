@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { curatedAssetIds } from '@aca/shared';
+import type { CoinMarket } from '@aca/shared';
 
 import { getCachedContent } from '../lib/cache.js';
 import type { CachedContent } from '../lib/cache.js';
@@ -11,17 +12,6 @@ const COINGECKO_MARKETS_URL = 'https://api.coingecko.com/api/v3/coins/markets';
 const MARKETS_TTL_SECONDS = 60;
 
 export const COIN_MARKETS_CACHE_KEY = 'coingecko:v1:markets';
-
-export interface CoinMarket {
-  id: string;
-  symbol: string;
-  name: string;
-  image: string;
-  currentPrice: number;
-  priceChangePercentage24h: number | null;
-  marketCap: number;
-  sparkline: number[];
-}
 
 // Only the fields this module maps are enumerated; passthrough lets upstream add
 // fields without breaking this schema, while a missing mapped field still throws.

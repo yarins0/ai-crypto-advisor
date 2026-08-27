@@ -15,8 +15,8 @@ afterEach(() => {
 // path means stubbing the env and re-importing the module graph fresh.
 async function importWithToken(): Promise<typeof import('../integrations/huggingface.js')> {
   vi.resetModules();
-  vi.stubEnv('HUGGINGFACE_API_TOKEN', 'test-token');
-  vi.stubEnv('HUGGINGFACE_MODEL', 'test-model');
+  vi.stubEnv('HF_TOKEN', 'test-token');
+  vi.stubEnv('HF_MODEL', 'test-model');
   return import('../integrations/huggingface.js');
 }
 
@@ -27,12 +27,12 @@ function mockFetchOnce(body: unknown, status = 200): ReturnType<typeof vi.spyOn>
 }
 
 describe('chatCompletion', () => {
-  // HUGGINGFACE_API_TOKEN is not set by src/tests/setup.ts.
+  // HF_TOKEN is not set by src/tests/setup.ts.
   it('rejects without a configured token and never calls fetch', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
     await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(
-      'HUGGINGFACE_API_TOKEN is not configured',
+      'HF_TOKEN is not configured',
     );
     expect(fetchSpy).not.toHaveBeenCalled();
   });

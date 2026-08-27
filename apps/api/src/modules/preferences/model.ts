@@ -1,12 +1,12 @@
 import mongoose, { Schema } from 'mongoose';
 import type { HydratedDocument, Types } from 'mongoose';
 
-import type { ContentType, InvestorType, RiskTolerance } from '@aca/shared';
+import type { AssetId, ContentType, InvestorType, RiskTolerance } from '@aca/shared';
 
 /** Shape of a persisted preference document. */
 export interface PreferenceAttributes {
   userId: Types.ObjectId;
-  assets: string[];
+  assets: AssetId[];
   investorType: InvestorType;
   contentTypes: ContentType[];
   riskTolerance: RiskTolerance;

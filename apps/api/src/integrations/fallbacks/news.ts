@@ -1,4 +1,4 @@
-import type { NewsItem } from '../cointelegraph.js';
+import type { NewsItem } from '@aca/shared';
 
 /**
  * A real snapshot of Cointelegraph's general feed, captured 2026-08-26. Real

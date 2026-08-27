@@ -1,7 +1,7 @@
 # AI Crypto Advisor — Implementation Plan
 
-Status: **draft, awaiting ratification.** No application code written yet.
-Last updated: 2026-08-26
+Status: **ratified and in progress.** M0–M4 implemented; M5 onward outstanding.
+Last updated: 2026-08-27
 
 ---
 
@@ -95,13 +95,16 @@ Preference      { userId (unique ref),
                   version: number,             // bumped on edit; votes reference it
                   timestamps }
 
-Vote            { userId, section, itemId, itemType, value: 1 | -1,
+Vote            { userId, section, itemId, value: 1 | -1,
                   context: {                   // frozen snapshot — this is the training payload
                     preferenceVersion, assets, investorType, contentTypes,
                     servedAt, itemMeta: { title?, coinId?, source?, model? }
                   },
                   timestamps }
                   // unique index (userId, section, itemId) → re-vote updates, never duplicates
+                  // `context` is rebuilt server-side from the cache row that served the item,
+                  // never accepted from the request: it is training data, so a client-supplied
+                  // itemMeta would let anyone inject fabricated rows.
 
 ContentCache    { key (unique), payload, fetchedAt }
                   // TTL index on fetchedAt purges after 7 days, far past any logical TTL:
@@ -114,6 +117,26 @@ RefreshToken    { userId, tokenHash, expiresAt, revokedAt }
 `Preference` is a separate collection rather than an embedded subdocument specifically so
 `version` can be bumped independently — a vote needs to know _which_ preference set was in
 force when the item was served, or the training data is worthless.
+
+`Vote` carries no `itemType`. An earlier draft had one alongside `section`, but `section`
+determines it one-to-one, and two fields encoding one fact are two fields that can disagree.
+
+A vote resolves only for an item the caller's own preferences could have served — the section
+must be in `contentTypes` and a coin must be in `assets`. Without that check a client can
+create rows for content it was never shown, and a training example labelled against content
+the user never saw is worse than no example at all.
+
+One limitation this leaves, stated because `context` is a training artefact and its
+provenance has to be exact: `preferenceVersion` is read when the vote is cast, not when the
+item was served. A user who edits preferences between seeing an item and voting on it
+records the newer version. The scoping check above narrows the window — an edit that changes
+the section or the asset makes the vote 404 outright — but an edit to `riskTolerance` alone
+does not. Closing it fully would mean persisting the version alongside every served item,
+which is more machinery than the residual skew justifies.
+
+`Preference.assets` is validated against the curated id list rather than accepted as free
+strings. An unrecognised id is otherwise accepted with a 200 and only surfaces later as a
+coin with no prices and no news feed — a failure two layers from where it entered.
 
 ## 5. API surface
 
@@ -128,8 +151,8 @@ GET    /api/onboarding/questions → server-driven quiz definition (client rende
 GET    /api/preferences
 PUT    /api/preferences          → onboarding submit and later edits share one endpoint
 
-GET    /api/dashboard            → { sections: { news, coins, insight, meme }, generatedAt }
-GET    /api/dashboard/meme       → re-roll the meme only
+GET    /api/dashboard            → { sections: { news, prices, insight, memes }, generatedAt }
+GET    /api/dashboard/meme       → re-roll the meme only (?exclude=<id> avoids a repeat)
 
 POST   /api/votes                → { section, itemId, value }  (upsert; value 0 clears)
 GET    /api/votes/summary        → aggregate counts, powers the analytics view
@@ -139,6 +162,16 @@ GET    /api/health
 
 `GET /api/dashboard` composes all four sections server-side in parallel. One round trip, and
 the client never learns which third-party APIs exist.
+
+The section names are the `Preference.contentTypes` values, not a parallel vocabulary. One
+list means a preference, a response key and a vote's `section` cannot disagree about what a
+section is called, and gating a section is then a membership test rather than a lookup table.
+
+All four section keys are always present, and a section the user did not select is `null`
+rather than omitted. Optional keys would make a section accidentally dropped by a bug
+indistinguishable on the wire from one deliberately deselected — and since the client parses
+this response against the shared schema, mandatory keys are what keeps that schema able to
+prove the response is complete.
 
 Every error response uses one shape: `{ error: string, fields?: Record<string, string> }`.
 A Zod validation failure fills `fields`; nothing else does.
@@ -187,7 +220,26 @@ list is already the primary source — an opportunistic branch that never succee
 production is code that does not need to exist.
 
 The AI insight is cached per user per calendar day, which is both a rate-limit defence and
-literally what "Insight of the **Day**" means.
+literally what "Insight of the **Day**" means. Day-scoping the key also puts yesterday's row
+permanently out of the stale tier's reach. That is deliberate rather than incidental:
+yesterday's generated prose about yesterday's prices is a worse answer than today's
+deterministic template about today's, so for this one section the second tier is skipped and
+the fallback is what catches a Hugging Face failure.
+
+A consequence worth stating, because it shapes how a vote on the insight is validated: the
+templated fallback is returned without writing a cache row, so an absent row is routine.
+Insight votes are therefore authenticated by user plus UTC day — which fully identify the
+item — and the cache row only enriches the recorded metadata.
+
+An empty tag feed is resolved at the composition layer, not the integration. A feed that
+returns zero articles is a genuinely successful fetch, so `cointelegraph.ts` caches it as
+`live` and does not lie about it; the dashboard service, merging feeds across a user's
+assets, substitutes the static fallback only when the merged result is empty. The
+integration reports what happened and the composition layer decides what the user sees,
+which keeps canned data out of the cache.
+
+Merged news reports the worst tier any contributing feed returned and the oldest of their
+fetch times, so the staleness badge can never overstate freshness.
 
 ## 7. Delivery milestones
 

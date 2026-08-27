@@ -10,6 +10,12 @@ import { connectDatabase } from './lib/db.js';
 async function startServer(): Promise<void> {
   await connectDatabase(env.MONGODB_URI);
 
+  // The insight degrades to its template silently by design, so without this a
+  // misspelled variable name is indistinguishable from a cold-starting model.
+  if (env.HF_TOKEN === undefined) {
+    console.warn('HF_TOKEN is not set: the AI insight will serve its deterministic fallback.');
+  }
+
   createApp().listen(env.PORT, () => {
     console.log(`api listening on http://localhost:${env.PORT}`);
   });

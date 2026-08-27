@@ -4,8 +4,11 @@ import express, { type Express } from 'express';
 import { env } from './env.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { requireAuth } from './middleware/require-auth.js';
+import { requireOnboarded } from './middleware/require-onboarded.js';
 import { authRouter } from './modules/auth/route.js';
+import { dashboardRouter } from './modules/dashboard/route.js';
 import { preferencesRouter } from './modules/preferences/route.js';
+import { votesRouter } from './modules/votes/route.js';
 
 /**
  * Render and Vercel each put exactly one proxy in front of the service. Express
@@ -33,6 +36,11 @@ export function createApp(): Express {
 
   app.use('/api/auth', authRouter);
   app.use('/api', requireAuth, preferencesRouter);
+
+  // requireOnboarded is mounted here rather than per route so a later route
+  // cannot be added to either router without a preference document behind it.
+  app.use('/api', requireAuth, requireOnboarded, dashboardRouter);
+  app.use('/api', requireAuth, requireOnboarded, votesRouter);
 
   // Last on purpose: Express reaches an error handler only after every route
   // above has declined or thrown.

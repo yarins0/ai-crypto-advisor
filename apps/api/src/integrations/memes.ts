@@ -1,10 +1,6 @@
-import type { CachedContent } from '../lib/cache.js';
+import type { Meme } from '@aca/shared';
 
-export interface Meme {
-  id: string;
-  title: string;
-  imageUrl: string;
-}
+import type { CachedContent } from '../lib/cache.js';
 
 const CARD_WIDTH = 600;
 const CARD_HEIGHT = 400;
@@ -43,6 +39,13 @@ const MEME_CARDS = [
   { id: 'diamond-hands-1', title: 'Diamond hands', accent: 'rgb(45,212,191)' },
   { id: 'when-lambo-1', title: 'When Lambo?', accent: 'rgb(250,204,21)' },
 ] as const;
+
+export function findMemeById(id: string): Meme | null {
+  const card = MEME_CARDS.find((candidate) => candidate.id === id);
+  return card
+    ? { id: card.id, title: card.title, imageUrl: toCardDataUri(card.title, card.accent) }
+    : null;
+}
 
 export function getRandomMeme(): CachedContent<Meme> {
   const randomIndex = Math.floor(Math.random() * MEME_CARDS.length);

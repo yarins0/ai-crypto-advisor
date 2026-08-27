@@ -1,17 +1,22 @@
 /**
- * Smoke test for the auth (M1) and preferences (M2) APIs: drives a running
- * server end to end over HTTP and prints a pass/fail line for every behaviour
- * each milestone promises. Complements the unit suite, which runs against an in-memory
- * database and so cannot prove cookie attributes, index enforcement or
- * refresh-token rotation against a real deployment.
+ * Smoke test for the auth (M1), preferences (M2) and dashboard/votes (M4)
+ * APIs: drives a running server end to end over HTTP and prints a pass/fail
+ * line for every behaviour each milestone promises. Complements the unit
+ * suite, which runs against an in-memory database and so cannot prove cookie
+ * attributes, index enforcement or refresh-token rotation against a real
+ * deployment.
  *
  * Local:     npm run smoke
  * Deployed:  BASE_URL=https://<host> npm run smoke
  *
  * Exits 0 when every check passes, 1 otherwise, so CI can gate on it.
  *
- * It creates one throwaway user in whatever database the server points at.
- * The email is printed at the end, with the command to remove it.
+ * It creates one throwaway user in whatever database the server points at,
+ * and deletes that user and everything referencing it when the run ends —
+ * whether the checks passed or not — as long as MONGODB_URI resolves to that
+ * same database. `npm run smoke` loads apps/api/.env for exactly this, since
+ * local and deployed runs share the one Atlas cluster; without a resolvable
+ * MONGODB_URI, cleanup is skipped and the manual command is printed instead.
  */
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4000';
@@ -58,6 +63,38 @@ async function call(path, { method = 'GET', body, accessToken, cookie } = {}) {
   return { response, status: response.status, body: parsed };
 }
 
+/**
+ * Deletes the throwaway user and every document that references it, so a
+ * repeated `npm run smoke` never accumulates data in a real database. Runs
+ * whether the checks above passed or failed — a failed run still created the
+ * user via the first request in the flow.
+ */
+async function cleanUpTestUser(userId, email) {
+  if (!process.env.MONGODB_URI) {
+    console.log(`\nMONGODB_URI not set — delete the test user by hand:`);
+    console.log(`  db.users.deleteOne({ email: "${email}" })`);
+    return;
+  }
+
+  // mongoose is CommonJS, so a dynamic import lands its exports under
+  // `.default` rather than on the namespace object itself.
+  const { default: mongoose } = await import('mongoose');
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    const db = mongoose.connection.db;
+    for (const collection of ['preferences', 'votes', 'refreshtokens']) {
+      await db.collection(collection).deleteMany({ userId: new mongoose.Types.ObjectId(userId) });
+    }
+    await db.collection('users').deleteOne({ _id: new mongoose.Types.ObjectId(userId) });
+    console.log(`\nTest user cleaned up: ${email}`);
+  } catch (error) {
+    console.log(`\nCould not clean up the test user automatically: ${error.message}`);
+    console.log(`  db.users.deleteOne({ email: "${email}" })`);
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
 async function main() {
   const email = `verify-${Date.now()}@example.com`;
   console.log(`\nBase URL: ${BASE_URL}`);
@@ -75,6 +112,7 @@ async function main() {
   check('register returns 201', register.status === 201, `got ${register.status}`);
   check('register returns an access token', typeof register.body?.accessToken === 'string');
   check('new user is not onboarded yet', register.body?.user?.onboardedAt === null);
+  const userId = register.body?.user?.id;
 
   const registerCookie = readRefreshCookie(register.response);
   check('register sets a refresh cookie', Boolean(registerCookie));
@@ -227,6 +265,22 @@ async function main() {
     Boolean(invalidPreferences.body?.fields?.investorType),
   );
 
+  // requireOnboarded gates dashboard and votes on a preference document that
+  // does not exist yet at this point in the flow, so both must 403 here.
+  const dashboardBeforeOnboarding = await call('/api/dashboard', { accessToken });
+  check(
+    'GET /dashboard before onboarding returns 403',
+    dashboardBeforeOnboarding.status === 403,
+    `got ${dashboardBeforeOnboarding.status}`,
+  );
+
+  const votesSummaryBeforeOnboarding = await call('/api/votes/summary', { accessToken });
+  check(
+    'GET /votes/summary before onboarding returns 403',
+    votesSummaryBeforeOnboarding.status === 403,
+    `got ${votesSummaryBeforeOnboarding.status}`,
+  );
+
   const firstSubmission = await call('/api/preferences', {
     method: 'PUT',
     accessToken,
@@ -273,6 +327,133 @@ async function main() {
     `first ${onboardedAtAfterFirstSubmission} vs second ${meAfterSecondSubmission.body?.onboardedAt}`,
   );
 
+  // --- dashboard (M4) -------------------------------------------------------
+  const dashboardAnonymous = await call('/api/dashboard');
+  check('GET /dashboard without a token returns 401', dashboardAnonymous.status === 401);
+
+  const CHOSEN_ASSETS = ['bitcoin', 'ethereum'];
+  const dashboardPreferences = await call('/api/preferences', {
+    method: 'PUT',
+    accessToken,
+    body: {
+      assets: CHOSEN_ASSETS,
+      investorType: 'hodler',
+      contentTypes: ['news', 'prices'],
+      riskTolerance: 'medium',
+    },
+  });
+  check(
+    'third PUT /preferences (dashboard fixture) returns 200',
+    dashboardPreferences.status === 200,
+  );
+
+  const dashboard = await call('/api/dashboard', { accessToken });
+  check('GET /dashboard after onboarding returns 200', dashboard.status === 200);
+
+  const sections = dashboard.body?.sections ?? {};
+  check(
+    'dashboard sections include all four keys',
+    ['news', 'prices', 'insight', 'memes'].every((key) => key in sections),
+    JSON.stringify(Object.keys(sections)),
+  );
+  check('unselected insight section is null', sections.insight === null);
+  check('unselected memes section is null', sections.memes === null);
+  check('selected prices section is not null', sections.prices !== null);
+  check(
+    'selected prices section has data, a live/cache/fallback source and a parseable fetchedAt',
+    Array.isArray(sections.prices?.data) &&
+      ['live', 'cache', 'fallback'].includes(sections.prices?.source) &&
+      !Number.isNaN(Date.parse(sections.prices?.fetchedAt ?? '')),
+  );
+  const priceAssetIds = (sections.prices?.data ?? []).map((coin) => coin.id);
+  check(
+    'prices data contains only the chosen assets',
+    priceAssetIds.every((id) => CHOSEN_ASSETS.includes(id)),
+    JSON.stringify(priceAssetIds),
+  );
+  check(
+    'dashboard generatedAt is a parseable ISO timestamp',
+    !Number.isNaN(Date.parse(dashboard.body?.generatedAt ?? '')),
+  );
+
+  // --- meme reroll ------------------------------------------------------
+  const firstMeme = await call('/api/dashboard/meme', { accessToken });
+  check('GET /dashboard/meme returns 200', firstMeme.status === 200);
+  check('meme reroll returns a meme section', Boolean(firstMeme.body?.meme?.data?.id));
+
+  const secondMeme = await call(`/api/dashboard/meme?exclude=${firstMeme.body?.meme?.data?.id}`, {
+    accessToken,
+  });
+  check(
+    'excluding the previous meme id returns a different one',
+    secondMeme.body?.meme?.data?.id !== firstMeme.body?.meme?.data?.id,
+    `${firstMeme.body?.meme?.data?.id} vs ${secondMeme.body?.meme?.data?.id}`,
+  );
+
+  // --- votes (M4) ---------------------------------------------------------
+  const voteItemId = sections.prices?.data?.[0]?.id;
+
+  const upvote = await call('/api/votes', {
+    method: 'POST',
+    accessToken,
+    body: { section: 'prices', itemId: voteItemId, value: 1 },
+  });
+  check('POST /votes with value 1 returns 200', upvote.status === 200);
+  check('upvote is recorded with value 1', upvote.body?.vote?.value === 1);
+
+  const flippedVote = await call('/api/votes', {
+    method: 'POST',
+    accessToken,
+    body: { section: 'prices', itemId: voteItemId, value: -1 },
+  });
+  check('re-voting the same item returns 200', flippedVote.status === 200);
+  check(
+    're-voting the same item upserts the new value rather than duplicating it',
+    flippedVote.body?.vote?.value === -1,
+  );
+
+  const summaryAfterVote = await call('/api/votes/summary', { accessToken });
+  const pricesTallyAfterVote = summaryAfterVote.body?.summary?.bySection?.find(
+    (row) => row.section === 'prices',
+  );
+  check(
+    'vote summary reflects the downvote',
+    pricesTallyAfterVote?.up === 0 && pricesTallyAfterVote?.down === 1,
+    JSON.stringify(pricesTallyAfterVote),
+  );
+
+  const clearedVote = await call('/api/votes', {
+    method: 'POST',
+    accessToken,
+    body: { section: 'prices', itemId: voteItemId, value: 0 },
+  });
+  check('clearing a vote (value 0) returns 200', clearedVote.status === 200);
+  check('clearing a vote returns a null vote', clearedVote.body?.vote === null);
+
+  const summaryAfterClear = await call('/api/votes/summary', { accessToken });
+  const pricesTallyAfterClear = summaryAfterClear.body?.summary?.bySection?.find(
+    (row) => row.section === 'prices',
+  );
+  check(
+    'vote summary no longer counts the cleared vote',
+    (pricesTallyAfterClear?.down ?? 0) === 0,
+    JSON.stringify(pricesTallyAfterClear),
+  );
+
+  const bogusItemVote = await call('/api/votes', {
+    method: 'POST',
+    accessToken,
+    body: { section: 'prices', itemId: 'not-a-real-coin-id', value: 1 },
+  });
+  check('voting on an unresolvable item returns 404', bogusItemVote.status === 404);
+
+  const invalidValueVote = await call('/api/votes', {
+    method: 'POST',
+    accessToken,
+    body: { section: 'prices', itemId: voteItemId, value: 2 },
+  });
+  check('voting with an out-of-range value returns 400', invalidValueVote.status === 400);
+
   // --- summary ------------------------------------------------------------
   const failed = results.filter((entry) => !entry.didPass);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
@@ -280,7 +461,9 @@ async function main() {
     console.log('\nFailures:');
     for (const entry of failed) console.log(`  - ${entry.label} ${entry.detail}`);
   }
-  console.log(`\nDelete the test user when done:  db.users.deleteOne({ email: "${email}" })`);
+  if (userId) {
+    await cleanUpTestUser(userId, email);
+  }
   process.exit(failed.length > 0 ? 1 : 0);
 }
 

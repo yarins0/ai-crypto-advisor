@@ -1,12 +1,20 @@
 import { z } from 'zod';
 
+import { assetIdSchema } from './assets.js';
+
 export const investorTypes = ['hodler', 'day_trader', 'nft_collector', 'yield_farmer'] as const;
+
+/**
+ * The single section vocabulary: it selects which dashboard sections are
+ * composed and which section a vote belongs to. One list, so a preference, a
+ * response key and a vote row cannot disagree about what a section is called.
+ */
 export const contentTypes = ['news', 'prices', 'insight', 'memes'] as const;
 export const riskTolerances = ['low', 'medium', 'high'] as const;
 
 /** Assets are CoinGecko ids ('bitcoin'), never tickers — the price integration keys on them. */
 export const preferencesRequestSchema = z.object({
-  assets: z.array(z.string().min(1)).min(1).max(10),
+  assets: z.array(assetIdSchema).min(1).max(10),
   investorType: z.enum(investorTypes),
   contentTypes: z.array(z.enum(contentTypes)).min(1),
   riskTolerance: z.enum(riskTolerances),

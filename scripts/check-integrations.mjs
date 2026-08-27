@@ -14,7 +14,7 @@ import { curatedAssetIds } from '@aca/shared';
 
 const COINGECKO_MARKETS_URL = 'https://api.coingecko.com/api/v3/coins/markets';
 const COINTELEGRAPH_TAG_URL = 'https://cointelegraph.com/rss/tag';
-const HUGGINGFACE_URL = 'https://router.huggingface.co/v1/chat/completions';
+const HUGGINGFACE_BASE_URL = process.env.HF_BASE_URL ?? 'https://router.huggingface.co/v1';
 
 /** Mirrors TAG_SLUG_OVERRIDES in apps/api/src/integrations/cointelegraph.ts. */
 const TAG_SLUG_OVERRIDES = {
@@ -88,17 +88,17 @@ async function checkCointelegraph() {
 }
 
 async function checkHuggingFace() {
-  const token = process.env.HUGGINGFACE_API_TOKEN;
+  const token = process.env.HF_TOKEN;
   if (!token) {
-    skip('huggingface chat completion', 'HUGGINGFACE_API_TOKEN not set');
+    skip('huggingface chat completion', 'HF_TOKEN not set');
     return;
   }
 
-  const response = await fetch(HUGGINGFACE_URL, {
+  const response = await fetch(`${HUGGINGFACE_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      model: process.env.HUGGINGFACE_MODEL ?? 'meta-llama/Llama-3.1-8B-Instruct',
+      model: process.env.HF_MODEL ?? 'meta-llama/Llama-3.1-8B-Instruct',
       messages: [{ role: 'user', content: 'Reply with the single word: ok' }],
       max_tokens: 5,
     }),

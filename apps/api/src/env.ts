@@ -26,14 +26,19 @@ const envSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
   /**
-   * Optional so the API still boots with no Hugging Face account configured.
-   * A missing token makes the insight client throw, which the cache helper
-   * degrades like any other upstream failure.
+   * Named for Hugging Face's own convention rather than this file's longer
+   * style, so a machine with the HF tooling already configured needs no extra
+   * setup. Optional: a missing token makes the insight client throw, which the
+   * cache helper degrades like any other upstream failure.
    */
-  HUGGINGFACE_API_TOKEN: z.string().optional(),
+  HF_TOKEN: z.string().optional(),
 
-  /** Configurable because free-tier model ids are deprecated without notice. */
-  HUGGINGFACE_MODEL: z.string().default('meta-llama/Llama-3.1-8B-Instruct'),
+  /**
+   * Both are configurable because free-tier model ids and router paths are
+   * deprecated without notice, and a redeploy is cheaper than a code change.
+   */
+  HF_MODEL: z.string().default('meta-llama/Llama-3.1-8B-Instruct'),
+  HF_BASE_URL: z.string().url().default('https://router.huggingface.co/v1'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

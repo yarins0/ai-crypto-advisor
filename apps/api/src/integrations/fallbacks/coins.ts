@@ -1,4 +1,4 @@
-import type { CoinMarket } from '../coingecko.js';
+import type { CoinMarket } from '@aca/shared';
 
 // Static snapshot for the fallback tier of getCachedContent. Values are
 // plausible, not live — they only render when both upstream and the cache row

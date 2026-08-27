@@ -1,6 +1,8 @@
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
 
+import type { NewsItem } from '@aca/shared';
+
 import { getCachedContent } from '../lib/cache.js';
 import type { CachedContent } from '../lib/cache.js';
 import { fetchOk } from '../lib/http.js';
@@ -18,14 +20,6 @@ const TAG_SLUG_OVERRIDES: Record<string, string> = {
 
 export function toTagSlug(assetId: string): string {
   return TAG_SLUG_OVERRIDES[assetId] ?? assetId;
-}
-
-export interface NewsItem {
-  id: string;
-  title: string;
-  url: string;
-  publishedAt: string;
-  imageUrl: string | null;
 }
 
 // isArray: a feed carrying exactly one <item> otherwise parses to a bare object.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { env } from '../env.js';
 import { fetchOk } from '../lib/http.js';
 
-const HUGGINGFACE_CHAT_URL = 'https://router.huggingface.co/v1/chat/completions';
+const CHAT_COMPLETIONS_PATH = '/chat/completions';
 const MAX_RESPONSE_TOKENS = 250;
 
 export interface ChatMessage {
@@ -20,18 +20,18 @@ const chatCompletionResponseSchema = z.object({
 export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
   // A missing token is just another upstream failure for the caller's
   // degradation path to absorb, not a reason to stop the API booting.
-  if (env.HUGGINGFACE_API_TOKEN === undefined) {
-    throw new Error('HUGGINGFACE_API_TOKEN is not configured');
+  if (env.HF_TOKEN === undefined) {
+    throw new Error('HF_TOKEN is not configured');
   }
 
-  const response = await fetchOk(HUGGINGFACE_CHAT_URL, {
+  const response = await fetchOk(`${env.HF_BASE_URL}${CHAT_COMPLETIONS_PATH}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.HUGGINGFACE_API_TOKEN}`,
+      Authorization: `Bearer ${env.HF_TOKEN}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: env.HUGGINGFACE_MODEL,
+      model: env.HF_MODEL,
       messages,
       max_tokens: MAX_RESPONSE_TOKENS,
     }),
