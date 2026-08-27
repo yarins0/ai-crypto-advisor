@@ -134,6 +134,12 @@ the section or the asset makes the vote 404 outright — but an edit to `riskTol
 does not. Closing it fully would mean persisting the version alongside every served item,
 which is more machinery than the residual skew justifies.
 
+Deferred to **M5**, not fixed now: closing it means the dashboard response carries the
+`preferenceVersion` it served, and the vote request echoes it back for `castVote` to check.
+That wire shape belongs to the same client work M5 already does — wiring GET `/dashboard`
+into POST `/votes` for optimistic updates — so it is designed once there instead of guessed
+at blind ahead of the screens that consume it.
+
 `Preference.assets` is validated against the curated id list rather than accepted as free
 strings. An unrecognised id is otherwise accepted with a 200 and only surfaces later as a
 coin with no prices and no news feed — a failure two layers from where it entered.
@@ -258,6 +264,12 @@ fetch times, so the staleness badge can never overstate freshness.
 M1–M4 are backend and independently testable; M5–M6 are frontend. M7 happens early enough
 to catch deploy problems while there's still time to fix them — the deploy is a deliverable,
 not an afterthought.
+
+Not scheduled to any milestone, deliberately: `smoke` and `check:integrations` stay out of
+CI because both need external state a CI runner doesn't have (a live server, real upstreams,
+HF credentials) — both already load `apps/api/.env` via `--env-file-if-exists`, so if this
+ever changes, CI would need those secrets injected. Recorded here so the omission reads as a
+decision, not something dropped.
 
 ## 8. Risk register
 
