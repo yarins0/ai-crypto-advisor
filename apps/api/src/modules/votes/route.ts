@@ -4,7 +4,7 @@ import { voteRequestSchema } from '@aca/shared';
 
 import { HttpError } from '../../lib/errors.js';
 import { validateBody } from '../../middleware/validate-body.js';
-import { castVote, getVoteSummary } from './service.js';
+import { castVote, getVoteSummary, listVotes } from './service.js';
 
 const AUTHENTICATION_REQUIRED_MESSAGE = 'Authentication required';
 
@@ -15,6 +15,14 @@ votesRouter.post('/votes', validateBody(voteRequestSchema), async (req, res) => 
     throw new HttpError(401, AUTHENTICATION_REQUIRED_MESSAGE);
   }
   const result = await castVote(req.userId, req.body);
+  res.status(200).json(result);
+});
+
+votesRouter.get('/votes', async (req, res) => {
+  if (!req.userId) {
+    throw new HttpError(401, AUTHENTICATION_REQUIRED_MESSAGE);
+  }
+  const result = await listVotes(req.userId);
   res.status(200).json(result);
 });
 

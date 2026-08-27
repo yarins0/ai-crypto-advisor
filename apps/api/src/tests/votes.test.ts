@@ -3,22 +3,27 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { voteResponseSchema } from '@aca/shared';
+import { voteResponseSchema, votesListResponseSchema } from '@aca/shared';
 import type {
   AssetId,
   CoinMarket,
   ContentType,
   VoteResponse,
   VoteSummaryResponse,
+  VotesListResponse,
 } from '@aca/shared';
 
 import { createApp } from '../app.js';
 import { COIN_MARKETS_CACHE_KEY } from '../integrations/coingecko.js';
 import { ContentCacheModel } from '../lib/cache.js';
+import { PreferenceModel } from '../modules/preferences/model.js';
 import type { VoteContext } from '../modules/votes/model.js';
 import { VoteModel } from '../modules/votes/model.js';
 
 const VALID_PASSWORD = 'Sup3rSecret!';
+// Preference.version defaults to 0 and upsertPreferences $incs it on every write,
+// so the PUT that completes onboarding leaves a freshly onboarded user at 1.
+const ONBOARDED_PREFERENCE_VERSION = 1;
 const app = createApp();
 
 const BITCOIN_COIN: CoinMarket = {
@@ -115,7 +120,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(403);
   });
@@ -127,7 +137,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     expect(() => voteResponseSchema.parse(response.body)).not.toThrow();
@@ -139,14 +154,21 @@ describe('POST /api/votes', () => {
     await seedCoinMarketsCache([BITCOIN_COIN]);
     const { accessToken, userId } = await registerAndOnboard();
 
-    await request(app)
-      .post('/api/votes')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+    await request(app).post('/api/votes').set('Authorization', `Bearer ${accessToken}`).send({
+      section: 'prices',
+      itemId: 'bitcoin',
+      value: 1,
+      preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+    });
     const second = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: -1 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: -1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(second.status).toBe(200);
     const rows = await VoteModel.find({ userId, section: 'prices', itemId: 'bitcoin' });
@@ -157,15 +179,22 @@ describe('POST /api/votes', () => {
   it('deletes the row and returns a null vote when value is 0', async () => {
     await seedCoinMarketsCache([BITCOIN_COIN]);
     const { accessToken, userId } = await registerAndOnboard();
-    await request(app)
-      .post('/api/votes')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+    await request(app).post('/api/votes').set('Authorization', `Bearer ${accessToken}`).send({
+      section: 'prices',
+      itemId: 'bitcoin',
+      value: 1,
+      preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+    });
 
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 0 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 0,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ vote: null });
@@ -179,7 +208,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 0 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 0,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ vote: null });
@@ -195,7 +229,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'long-gone-coin', value: 0 });
+      .send({
+        section: 'prices',
+        itemId: 'long-gone-coin',
+        value: 0,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ vote: null });
@@ -209,7 +248,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'not-a-real-coin', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'not-a-real-coin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'Item not found' });
@@ -222,7 +266,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'insight', itemId: todayUtc, value: 1 });
+      .send({
+        section: 'insight',
+        itemId: todayUtc,
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(404);
   });
@@ -233,7 +282,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'memes', itemId: 'hodl-1', value: 1 });
+      .send({
+        section: 'memes',
+        itemId: 'hodl-1',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(404);
   });
@@ -248,7 +302,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'cosmos', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'cosmos',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(404);
   });
@@ -264,7 +323,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
   });
@@ -285,23 +349,30 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'news', itemId: 'some-ethereum-article', value: 1 });
+      .send({
+        section: 'news',
+        itemId: 'some-ethereum-article',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(404);
   });
 
-  // The contentTypes guard sits inside resolveVotedItem; clearing must keep
-  // bypassing it entirely, the same as it bypasses item resolution.
+  // Editing preferences moves both the contentTypes guard and the stored version
+  // past what the clear below sends, so this covers every check clearing bypasses.
   it('still clears a vote for a section the user has since deselected', async () => {
     await seedCoinMarketsCache([BITCOIN_COIN]);
     const { accessToken } = await registerAndOnboard({
       assets: ['bitcoin'],
       contentTypes: ['prices'],
     });
-    await request(app)
-      .post('/api/votes')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+    await request(app).post('/api/votes').set('Authorization', `Bearer ${accessToken}`).send({
+      section: 'prices',
+      itemId: 'bitcoin',
+      value: 1,
+      preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+    });
 
     await request(app)
       .put('/api/preferences')
@@ -316,7 +387,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 0 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 0,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ vote: null });
@@ -339,6 +415,7 @@ describe('POST /api/votes', () => {
         section: 'prices',
         itemId: 'bitcoin',
         value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
         context: {
           preferenceVersion: 999,
           assets: ['ethereum'],
@@ -372,7 +449,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 1 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(200);
     const stored = await VoteModel.findOne({ userId, section: 'prices', itemId: 'bitcoin' });
@@ -387,7 +469,12 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'prices', itemId: 'bitcoin', value: 2 });
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 2,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(400);
     expect(response.body.fields).toHaveProperty('value');
@@ -399,9 +486,116 @@ describe('POST /api/votes', () => {
     const response = await request(app)
       .post('/api/votes')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ section: 'not-a-real-section', itemId: 'bitcoin', value: 1 });
+      .send({
+        section: 'not-a-real-section',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION,
+      });
 
     expect(response.status).toBe(400);
+  });
+
+  it('rejects a vote with a stale preferenceVersion with 409 and writes no row', async () => {
+    await seedCoinMarketsCache([BITCOIN_COIN]);
+    const { accessToken, userId } = await registerAndOnboard();
+
+    const response = await request(app)
+      .post('/api/votes')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: ONBOARDED_PREFERENCE_VERSION + 1,
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'Preferences changed' });
+    const rows = await VoteModel.find({ userId, section: 'prices', itemId: 'bitcoin' });
+    expect(rows).toHaveLength(0);
+  });
+
+  // A stale version is rejected outright, so the two are never observably
+  // different at write time. Deriving the expectation from the Preference
+  // document is what would still catch a context echoed from the request body.
+  it("stores context.preferenceVersion from the Preference document's current version", async () => {
+    await seedCoinMarketsCache([BITCOIN_COIN]);
+    const { accessToken, userId } = await registerAndOnboard();
+    await request(app)
+      .put('/api/preferences')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        assets: ['bitcoin'],
+        investorType: 'hodler',
+        contentTypes: ['prices'],
+        riskTolerance: 'medium',
+      });
+    const preference = await PreferenceModel.findOne({ userId });
+    const currentVersion = preference?.version;
+
+    const response = await request(app)
+      .post('/api/votes')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        section: 'prices',
+        itemId: 'bitcoin',
+        value: 1,
+        preferenceVersion: currentVersion,
+      });
+
+    expect(response.status).toBe(200);
+    const stored = await VoteModel.findOne({ userId, section: 'prices', itemId: 'bitcoin' });
+    const context = stored?.context as VoteContext;
+    expect(context.preferenceVersion).toBe(currentVersion);
+  });
+});
+
+describe('GET /api/votes', () => {
+  it('rejects a request with no Authorization header with 401', async () => {
+    const response = await request(app).get('/api/votes');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects a non-onboarded user with 403', async () => {
+    const registerResponse = await request(app)
+      .post('/api/auth/register')
+      .send({ email: uniqueEmail(), name: 'Test User', password: VALID_PASSWORD });
+    const accessToken = (registerResponse.body as { accessToken: string }).accessToken;
+
+    const response = await request(app)
+      .get('/api/votes')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("returns only the calling user's votes in a schema-valid response", async () => {
+    const { accessToken, userId } = await registerAndOnboard();
+    await VoteModel.create({
+      userId,
+      section: 'prices',
+      itemId: 'bitcoin',
+      value: 1,
+      context: buildVoteContext(),
+    });
+    await VoteModel.create({
+      userId: new mongoose.Types.ObjectId(),
+      section: 'prices',
+      itemId: 'ethereum',
+      value: 1,
+      context: buildVoteContext({ assets: ['ethereum'], itemMeta: { title: 'Ethereum' } }),
+    });
+
+    const response = await request(app)
+      .get('/api/votes')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(200);
+    expect(() => votesListResponseSchema.parse(response.body)).not.toThrow();
+    const { votes } = response.body as VotesListResponse;
+    expect(votes.map((vote) => vote.itemId)).toEqual(['bitcoin']);
   });
 });
 

@@ -9,6 +9,7 @@ import { env } from '../env.js';
 import { fetchNewsForAsset, toTagSlug } from '../integrations/cointelegraph.js';
 import { chatCompletion } from '../integrations/huggingface.js';
 import { ContentCacheModel } from '../lib/cache.js';
+import { PreferenceModel } from '../modules/preferences/model.js';
 import { createApp } from '../app.js';
 
 // env.ts parses process.env once, at import time, into a frozen module-level
@@ -97,7 +98,7 @@ interface PreferencesOverrides {
 
 async function registerAndOnboard(
   overrides: PreferencesOverrides = {},
-): Promise<{ accessToken: string }> {
+): Promise<{ accessToken: string; userId: string }> {
   const registerResponse = await request(app)
     .post('/api/auth/register')
     .send({ email: uniqueEmail(), name: 'Test User', password: VALID_PASSWORD });
@@ -113,7 +114,8 @@ async function registerAndOnboard(
       riskTolerance: 'medium',
     });
 
-  return { accessToken };
+  const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
+  return { accessToken, userId: (me.body as { id: string }).id };
 }
 
 afterEach(() => {
@@ -150,6 +152,19 @@ describe('GET /api/dashboard', () => {
 
     expect(response.status).toBe(200);
     expect(() => dashboardResponseSchema.parse(response.body)).not.toThrow();
+  });
+
+  it("includes a top-level preferenceVersion matching the caller's current Preference.version", async () => {
+    mockUpstreamFetch();
+    const { accessToken, userId } = await registerAndOnboard();
+    const preference = await PreferenceModel.findOne({ userId });
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${accessToken}`);
+    const body = response.body as DashboardResponse;
+
+    expect(body.preferenceVersion).toBe(preference?.version);
   });
 
   it('always includes all four section keys, null for a section not selected', async () => {

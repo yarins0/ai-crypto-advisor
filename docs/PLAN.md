@@ -134,11 +134,17 @@ the section or the asset makes the vote 404 outright — but an edit to `riskTol
 does not. Closing it fully would mean persisting the version alongside every served item,
 which is more machinery than the residual skew justifies.
 
-Deferred to **M5**, not fixed now: closing it means the dashboard response carries the
-`preferenceVersion` it served, and the vote request echoes it back for `castVote` to check.
-That wire shape belongs to the same client work M5 already does — wiring GET `/dashboard`
-into POST `/votes` for optimistic updates — so it is designed once there instead of guessed
-at blind ahead of the screens that consume it.
+Closed in **M5**, and not by that route: the dashboard response carries the
+`preferenceVersion` it served and the vote request echoes it back, so `castVote` compares the
+two and rejects a mismatch with 409 rather than recording a skewed version. That costs one
+number on two payloads that already exist, instead of a stored version per served item.
+
+The echoed value is compared and then discarded. `buildVoteContext` still takes only the
+preference document and the resolved item, so it has no parameter through which the request
+could reach it — a client can cause its own vote to be rejected, never forge the context that
+gets recorded. Clearing a vote (`value: 0`) skips the check deliberately, since it writes no
+context and has to keep working after a preference edit. The cost is that a vote on an item
+served under older preferences fails, and the client refetches the dashboard and retries.
 
 `Preference.assets` is validated against the curated id list rather than accepted as free
 strings. An unrecognised id is otherwise accepted with a 200 and only surfaces later as a
@@ -157,10 +163,11 @@ GET    /api/onboarding/questions → server-driven quiz definition (client rende
 GET    /api/preferences
 PUT    /api/preferences          → onboarding submit and later edits share one endpoint
 
-GET    /api/dashboard            → { sections: { news, prices, insight, memes }, generatedAt }
+GET    /api/dashboard            → { sections: { news, prices, insight, memes }, preferenceVersion, generatedAt }
 GET    /api/dashboard/meme       → re-roll the meme only (?exclude=<id> avoids a repeat)
 
-POST   /api/votes                → { section, itemId, value }  (upsert; value 0 clears)
+POST   /api/votes                → { section, itemId, value, preferenceVersion }  (upsert; value 0 clears)
+GET    /api/votes                → the caller's own votes, so a reload can render what they already voted on
 GET    /api/votes/summary        → aggregate counts, powers the analytics view
 
 GET    /api/health

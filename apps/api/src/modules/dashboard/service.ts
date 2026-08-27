@@ -121,6 +121,7 @@ export async function buildDashboard(userId: string): Promise<DashboardResponse>
       insight: insightContent ? toSection(insightContent) : null,
       memes: hasContentType('memes') ? rerollMeme() : null,
     },
+    preferenceVersion: preference.version,
     generatedAt: new Date().toISOString(),
   };
 }

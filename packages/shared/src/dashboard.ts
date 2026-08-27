@@ -64,6 +64,9 @@ export const dashboardResponseSchema = z.object({
     insight: insightSectionSchema.nullable(),
     memes: memeSectionSchema.nullable(),
   }),
+  // Carried so a vote can echo it back. Without it the client has no way to
+  // name which preference set produced the item it is voting on.
+  preferenceVersion: z.number().int().nonnegative(),
   generatedAt: z.string().datetime(),
 });
 

@@ -6,6 +6,7 @@ import type {
   VoteRequest,
   VoteResponse,
   VoteSummaryResponse,
+  VotesListResponse,
 } from '@aca/shared';
 
 import { HttpError } from '../../lib/errors.js';
@@ -67,6 +68,13 @@ export async function castVote(userId: string, input: VoteRequest): Promise<Vote
     return clearVote(userId, input.section, input.itemId);
   }
 
+  // Checked after the clear branch, for the same reason clearing skips item
+  // resolution: removing a vote writes no context, so it must keep working for
+  // a user whose preferences moved on since the item was served.
+  if (input.preferenceVersion !== preference.version) {
+    throw new HttpError(409, 'Preferences changed');
+  }
+
   const resolvedItem = await resolveVotedItem(userId, input.section, input.itemId, preference);
   if (!resolvedItem) {
     throw new HttpError(404, 'Item not found');
@@ -81,6 +89,15 @@ export async function castVote(userId: string, input: VoteRequest): Promise<Vote
 
   // upsert + new guarantee a document; mongoose's types can't express that.
   return { vote: toVoteResponse(vote!) };
+}
+
+/**
+ * Deliberately unpaginated: a user can only accumulate votes for items they were
+ * actually served, which bounds this at a few hundred rows in the worst case.
+ */
+export async function listVotes(userId: string): Promise<VotesListResponse> {
+  const votes = await VoteModel.find({ userId });
+  return { votes: votes.map(toVoteResponse) };
 }
 
 interface VoteTallyRow {
