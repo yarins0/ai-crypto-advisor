@@ -1,6 +1,6 @@
 # AI Crypto Advisor — Implementation Plan
 
-Status: **ratified and in progress.** M0–M4 implemented; M5 onward outstanding.
+Status: **ratified and in progress.** M0–M5 implemented; M6 onward outstanding.
 Last updated: 2026-08-27
 
 ---
@@ -44,9 +44,9 @@ npm workspaces monorepo, so the client and server share DTO types and can't drif
 ├── apps/
 │   ├── web/                 # React + Vite SPA          → Vercel
 │   │   └── src/
-│   │       ├── app/         # router, providers, layout
-│   │       ├── features/    # auth · onboarding · dashboard · votes
-│   │       ├── components/  # ui primitives (Card, Skeleton, Toast, VoteButtons)
+│   │       ├── app/         # router, providers, route guards
+│   │       ├── features/    # auth · onboarding · preferences · dashboard · votes
+│   │       ├── components/  # ui primitives (Card, Button, TextField, question inputs)
 │   │       └── lib/         # api client, query client, formatters
 │   └── api/                 # Express + TypeScript      → Render
 │       └── src/

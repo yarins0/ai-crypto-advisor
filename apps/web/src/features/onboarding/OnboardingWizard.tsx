@@ -4,11 +4,15 @@ import type { OnboardingQuestion } from '@aca/shared';
 
 import { Button } from '../../components/Button.js';
 import { FormBanner } from '../../components/FormBanner.js';
+import { QuestionStep } from '../../components/questions/QuestionStep.js';
 import { getFormMessage } from '../../lib/api/form-errors.js';
-import { QuestionStep } from './QuestionStep.js';
-import { createEmptyAnswers, isAnswerComplete, toPreferencesRequest } from './answers.js';
-import type { AnswerMap } from './answers.js';
-import { useSubmitPreferences } from './use-onboarding.js';
+import {
+  createEmptyAnswers,
+  isAnswerComplete,
+  toPreferencesRequest,
+} from '../preferences/answers.js';
+import type { AnswerMap } from '../preferences/answers.js';
+import { useSavePreferences } from '../preferences/use-preferences.js';
 
 const PERCENT = 100;
 
@@ -21,7 +25,7 @@ interface OnboardingWizardProps {
  * alone lists fifteen options, which on a phone is most of a scroll on its own.
  */
 export function OnboardingWizard({ questions }: OnboardingWizardProps) {
-  const submitMutation = useSubmitPreferences();
+  const submitMutation = useSavePreferences();
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>(createEmptyAnswers);
 

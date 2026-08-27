@@ -1,30 +1,33 @@
-import { useLogout, useSession } from '../auth/use-session.js';
+import { FormBanner } from '../../components/FormBanner.js';
+import { getFormMessage } from '../../lib/api/form-errors.js';
+import { DashboardHeader } from './DashboardHeader.js';
+import { DashboardSections } from './DashboardSections.js';
+import { useDashboard } from './use-dashboard.js';
 
-// Placeholder shell. The four composed sections and the vote controls land in
-// the dashboard step; this exists so the signed-in route resolves.
 export function DashboardPage() {
-  const { data: session } = useSession();
-  const logoutMutation = useLogout();
+  const dashboardQuery = useDashboard();
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 py-8 sm:px-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">Signed in as</p>
-          <p className="text-base font-medium text-slate-100">{session?.user.name}</p>
-        </div>
-        <button
-          type="button"
-          disabled={logoutMutation.isPending}
-          onClick={() => {
-            logoutMutation.mutate();
-          }}
-          className="min-h-11 shrink-0 rounded-lg border border-slate-700 px-3 text-sm font-medium text-slate-300 disabled:opacity-60"
-        >
-          Sign out
-        </button>
-      </header>
-      <p className="mt-8 text-slate-400">Your dashboard sections arrive in the next step.</p>
+    <main className="mx-auto min-h-dvh w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+      {/* Rendered above the query states so a failed dashboard still leaves the
+          user a way to reach their preferences or sign out. */}
+      <DashboardHeader />
+
+      <div className="mt-6">
+        {dashboardQuery.isPending ? (
+          <p className="text-sm text-slate-500">Loading your dashboard…</p>
+        ) : null}
+
+        {dashboardQuery.isError ? (
+          <FormBanner
+            message={getFormMessage(dashboardQuery.error) ?? 'Could not load your dashboard.'}
+          />
+        ) : null}
+
+        {dashboardQuery.data === undefined ? null : (
+          <DashboardSections dashboard={dashboardQuery.data} />
+        )}
+      </div>
     </main>
   );
 }

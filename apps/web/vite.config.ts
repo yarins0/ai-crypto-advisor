@@ -22,5 +22,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/tests/setup.ts'],
+    // Mock call history persists between tests otherwise, so an assertion on a
+    // first recorded call can silently read one made by the test before it.
+    clearMocks: true,
   },
 });

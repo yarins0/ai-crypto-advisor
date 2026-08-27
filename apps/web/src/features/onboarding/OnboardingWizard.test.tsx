@@ -1,16 +1,16 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { OnboardingQuestion } from '@aca/shared';
 
 import { createQueryClient } from '../../lib/query-client.js';
+import { savePreferences } from '../preferences/api.js';
 import { OnboardingWizard } from './OnboardingWizard.js';
-import { savePreferences } from './api.js';
 
-vi.mock('./api.js', () => ({
-  fetchOnboardingQuestions: vi.fn(),
+vi.mock('../preferences/api.js', () => ({
+  fetchPreferences: vi.fn(),
   savePreferences: vi.fn(() => Promise.resolve({ preferences: null })),
 }));
 
@@ -67,10 +67,6 @@ function renderWizard() {
     </QueryClientProvider>,
   );
 }
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
 
 describe('OnboardingWizard', () => {
   it('blocks the step until the question’s minimum is met', async () => {

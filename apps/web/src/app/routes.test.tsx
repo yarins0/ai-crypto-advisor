@@ -13,7 +13,11 @@ import { AppRoutes } from './routes.js';
 // and a real request would only add retries and noise to that question.
 vi.mock('../features/onboarding/api.js', () => ({
   fetchOnboardingQuestions: vi.fn(() => new Promise(() => undefined)),
-  savePreferences: vi.fn(),
+}));
+
+vi.mock('../features/dashboard/api.js', () => ({
+  fetchDashboard: vi.fn(() => new Promise(() => undefined)),
+  fetchMemeReroll: vi.fn(),
 }));
 
 const ONBOARDED_SESSION: AuthResponse = {

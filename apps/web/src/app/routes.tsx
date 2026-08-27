@@ -4,6 +4,7 @@ import { LoginPage } from '../features/auth/LoginPage.js';
 import { RegisterPage } from '../features/auth/RegisterPage.js';
 import { DashboardPage } from '../features/dashboard/DashboardPage.js';
 import { OnboardingPage } from '../features/onboarding/OnboardingPage.js';
+import { SettingsPage } from '../features/preferences/SettingsPage.js';
 import { PublicOnly, RequireAuth, RequireOnboarded } from './route-guards.js';
 
 /**
@@ -22,6 +23,7 @@ export function AppRoutes() {
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route element={<RequireOnboarded />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

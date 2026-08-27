@@ -1,5 +1,5 @@
 import { preferencesRequestSchema } from '@aca/shared';
-import type { OnboardingQuestion, PreferencesRequest } from '@aca/shared';
+import type { OnboardingQuestion, PreferencesRequest, PreferencesResponse } from '@aca/shared';
 
 /**
  * Every answer is held as an array, single-select included, so one shape covers
@@ -11,6 +11,16 @@ const DEFAULT_MINIMUM_SELECTIONS = 1;
 
 export function createEmptyAnswers(): AnswerMap {
   return { assets: [], investorType: [], contentTypes: [], riskTolerance: [] };
+}
+
+/** Inverse of toPreferencesRequest, for prefilling the preferences screen. */
+export function toAnswerMap(preferences: PreferencesResponse): AnswerMap {
+  return {
+    assets: [...preferences.assets],
+    investorType: [preferences.investorType],
+    contentTypes: [...preferences.contentTypes],
+    riskTolerance: [preferences.riskTolerance],
+  };
 }
 
 /** Bounds come from the question definition, so the server owns the limits. */
