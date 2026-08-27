@@ -25,7 +25,7 @@ ten minutes.
 | Frontend      | React 19 + Vite + TypeScript                                    | Brief requires React or Angular. Vite keeps the build trivial and the SPA deploys as static files.                                          |
 | Styling       | Tailwind CSS                                                    | Fast to build a dense dark UI; design tokens live in one config.                                                                            |
 | Data fetching | TanStack Query                                                  | Caching, retries and optimistic vote updates for free.                                                                                      |
-| Charts        | Recharts                                                        | Sparklines on coin cards. Small, declarative, no D3 hand-rolling.                                                                           |
+| Charts        | Recharts                                                        | Sparklines on coin cards. Declarative, no D3 hand-rolling. Not small — 82 kB gzipped, so M6 code-splits it (see below).                     |
 | Backend       | Node 20 + Express 5 + TypeScript                                | One language across the stack; minimal footprint on a free host.                                                                            |
 | Validation    | Zod                                                             | One schema per DTO, shared with the client via `packages/shared`.                                                                           |
 | DB            | MongoDB Atlas + Mongoose                                        | Chosen by the developer. Free tier persists across redeploys, and the Atlas UI is easy to share with reviewers (a listed deliverable).      |
@@ -34,6 +34,31 @@ ten minutes.
 | Tests         | Vitest + Supertest (api), Vitest + Testing Library (web)        | Same runner both sides.                                                                                                                     |
 | CI            | GitHub Actions                                                  | Lint, typecheck, test on every push.                                                                                                        |
 | Hosting       | Vercel (web) · Render (api) · Atlas (db)                        | All free tiers.                                                                                                                             |
+
+### Recharts is code-split, not loaded up front
+
+Measured during M6: adding Recharts took the initial JavaScript bundle from 102.18 kB to
+185.43 kB gzipped — an 81% rise, and enough to trip Vite's 500 kB chunk warning. For a
+decorative 64×20 sparkline with no axes, tooltip or interaction, that is the whole library's
+cost paid on every page load, including by users who deselected the prices section.
+
+The table's original claim that Recharts is "small" was simply wrong, and is corrected above.
+
+Two options were weighed. Replacing it with a hand-rolled SVG `<polyline>` would have cost
+roughly 25 lines and nothing in bundle size, but reversing a tech decision this document had
+already committed to, purely because the first implementation looked easy, is how an
+architecture record stops being trustworthy. Recharts was kept and the cost was removed
+instead: `Sparkline` splits into an eager wrapper that owns the sized box, the colour and the
+minimum-length guard, and a lazily imported `SparklineChart` that is the only module touching
+Recharts.
+
+The split is what makes this work rather than the `lazy` call alone. Keeping the box eager
+means the coin row holds its layout while the chunk loads, and keeping the length guard eager
+means a coin with too short a series never requests the chunk at all.
+
+Result: initial bundle 102.73 kB gzipped — 0.55 kB above the pre-Recharts baseline — with the
+chart arriving in a separate 82.26 kB chunk only when a prices card renders. The chunk-size
+warning is gone.
 
 ## 3. Repository layout
 

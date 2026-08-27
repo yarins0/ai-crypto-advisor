@@ -27,7 +27,7 @@ export function LoginPage() {
       footer={
         <>
           No account yet?{' '}
-          <Link to="/register" className="font-medium text-slate-200 underline">
+          <Link to="/register" className="font-medium text-ink underline">
             Create one
           </Link>
         </>

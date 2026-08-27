@@ -56,7 +56,7 @@ export function PreferencesForm({ questions, initialAnswers }: PreferencesFormPr
           Save preferences
         </Button>
         {saveMutation.isSuccess ? (
-          <p role="status" className="text-center text-sm text-slate-400">
+          <p role="status" className="text-center text-sm text-ink-muted">
             Preferences saved.
           </p>
         ) : null}

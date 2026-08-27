@@ -13,7 +13,7 @@ export function SingleSelectQuestion({ question, value, onChange }: SingleSelect
     // fieldset/legend rather than a div and a heading: it is what groups the
     // radios for a screen reader, so the question is read with each option.
     <fieldset className="border-0 p-0">
-      <legend className="text-lg font-semibold text-slate-100">{question.label}</legend>
+      <legend className="text-lg font-semibold text-ink">{question.label}</legend>
       <div className="mt-4 flex flex-col gap-2">
         {question.options.map((option) => (
           <label key={option.value} className={getOptionRowClass(value === option.value)}>
@@ -25,7 +25,7 @@ export function SingleSelectQuestion({ question, value, onChange }: SingleSelect
               onChange={() => {
                 onChange(option.value);
               }}
-              className="size-4 shrink-0 accent-slate-200"
+              className="size-4 shrink-0 accent-accent"
             />
             <span>{option.label}</span>
           </label>

@@ -14,7 +14,7 @@ const ACTIVE_CLASS: Record<VoteDirection, string> = {
 };
 
 export function VoteButton({ direction, isActive, onPress }: VoteButtonProps) {
-  const stateClass = isActive ? ACTIVE_CLASS[direction] : 'border-slate-800 text-slate-500';
+  const stateClass = isActive ? ACTIVE_CLASS[direction] : 'border-line text-ink-faint';
 
   return (
     <button
@@ -24,7 +24,7 @@ export function VoteButton({ direction, isActive, onPress }: VoteButtonProps) {
       aria-label={DIRECTION_LABEL[direction]}
       aria-pressed={isActive}
       onClick={onPress}
-      className={`flex size-11 shrink-0 items-center justify-center rounded-lg border text-xs ${stateClass}`}
+      className={`flex size-11 shrink-0 items-center justify-center rounded-md border text-xs ${stateClass}`}
     >
       {DIRECTION_GLYPH[direction]}
     </button>

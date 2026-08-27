@@ -11,13 +11,13 @@ export function DashboardHeader() {
     // so the name never competes with the actions for the same line.
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="text-sm text-slate-500">AI Crypto Advisor</p>
-        <p className="truncate text-lg font-semibold text-slate-100">{session?.user.name}</p>
+        <p className="text-sm text-ink-faint">AI Crypto Advisor</p>
+        <p className="truncate text-lg font-semibold text-ink">{session?.user.name}</p>
       </div>
       <nav className="flex shrink-0 items-center gap-2">
         <Link
           to="/settings"
-          className="flex min-h-11 items-center rounded-lg border border-slate-700 px-3 text-sm font-medium text-slate-300"
+          className="flex min-h-11 items-center rounded-md border border-line-strong px-3 text-sm font-medium text-ink-muted"
         >
           Preferences
         </Link>
@@ -27,7 +27,7 @@ export function DashboardHeader() {
           onClick={() => {
             logoutMutation.mutate();
           }}
-          className="min-h-11 rounded-lg border border-slate-700 px-3 text-sm font-medium text-slate-300 disabled:opacity-60"
+          className="min-h-11 rounded-md border border-line-strong px-3 text-sm font-medium text-ink-muted disabled:opacity-60"
         >
           Sign out
         </button>

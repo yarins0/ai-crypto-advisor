@@ -58,12 +58,12 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-8 sm:px-6">
       <header>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-faint">
           Step {stepIndex + 1} of {questions.length}
         </p>
-        <div className="mt-2 h-1 rounded-full bg-slate-800">
+        <div className="mt-2 h-1 rounded-full bg-line">
           <div
-            className="h-1 rounded-full bg-slate-300 transition-all"
+            className="h-1 rounded-full bg-accent transition-all"
             style={{ width: `${String(((stepIndex + 1) / questions.length) * PERCENT)}%` }}
           />
         </div>
@@ -86,7 +86,7 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
             onClick={() => {
               setStepIndex((current) => current - 1);
             }}
-            className="min-h-11 flex-1 rounded-lg border border-slate-700 px-4 text-base font-medium text-slate-300"
+            className="min-h-11 flex-1 rounded-md border border-line-strong px-4 text-base font-medium text-ink-muted"
           >
             Back
           </button>

@@ -13,12 +13,15 @@ interface DashboardSectionsProps {
  * A null section is one the user did not select, so it renders nothing at all.
  * All four keys are always present on the wire precisely so that "absent" and
  * "deselected" cannot be confused here.
+ *
+ * Returns a fragment: the caller owns the grid, so the placeholder shown while
+ * loading and these cards share one layout definition.
  */
 export function DashboardSections({ dashboard }: DashboardSectionsProps) {
   const { sections, preferenceVersion } = dashboard;
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {sections.prices === null ? null : (
         <PricesCard section={sections.prices} preferenceVersion={preferenceVersion} />
       )}
@@ -31,6 +34,6 @@ export function DashboardSections({ dashboard }: DashboardSectionsProps) {
       {sections.memes === null ? null : (
         <MemeCard section={sections.memes} preferenceVersion={preferenceVersion} />
       )}
-    </div>
+    </>
   );
 }

@@ -18,11 +18,11 @@ export function TextField({
   onChange,
 }: TextFieldProps) {
   const errorId = `${id}-error`;
-  const borderClass = error ? 'border-red-500' : 'border-slate-700';
+  const borderClass = error ? 'border-red-500' : 'border-line-strong';
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-slate-300">
+      <label htmlFor={id} className="text-sm font-medium text-ink-muted">
         {label}
       </label>
       <input
@@ -37,7 +37,7 @@ export function TextField({
         }}
         // min-h-11 keeps the tap target at 44px. text-base is load-bearing on
         // mobile: iOS Safari zooms into any input below 16px on focus.
-        className={`min-h-11 w-full rounded-lg border ${borderClass} bg-surface-raised px-3 text-base text-slate-100 outline-none placeholder:text-slate-500 focus:border-slate-400`}
+        className={`min-h-11 w-full rounded-md border ${borderClass} bg-surface-raised px-3 text-base text-ink outline-none placeholder:text-ink-faint focus:border-accent`}
       />
       {error === undefined ? null : (
         <p id={errorId} className="text-sm text-red-400">

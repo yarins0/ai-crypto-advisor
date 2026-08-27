@@ -25,7 +25,7 @@ export function MemeCard({ section, preferenceVersion }: MemeCardProps) {
           onClick={() => {
             rerollMutation.mutate(meme.id);
           }}
-          className="min-h-11 rounded-lg border border-slate-700 px-3 text-sm text-slate-300 disabled:opacity-60"
+          className="min-h-11 rounded-md border border-line-strong px-3 text-sm text-ink-muted disabled:opacity-60"
         >
           Shuffle
         </button>
@@ -35,10 +35,10 @@ export function MemeCard({ section, preferenceVersion }: MemeCardProps) {
         src={meme.imageUrl}
         alt={meme.title}
         loading="lazy"
-        className="w-full rounded-lg bg-slate-900"
+        className="w-full rounded-md bg-surface"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="min-w-0 flex-1 truncate text-sm text-slate-300">{meme.title}</p>
+        <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">{meme.title}</p>
         <VoteButtons section="memes" itemId={meme.id} preferenceVersion={preferenceVersion} />
       </div>
     </Card>

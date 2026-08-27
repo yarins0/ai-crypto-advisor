@@ -24,7 +24,7 @@ export function Button({
       // aria-busy rather than swapping the label for a spinner: replacing the
       // text would make a screen reader announce the button as a new control.
       aria-busy={isPending}
-      className="min-h-11 w-full rounded-lg bg-slate-100 px-4 text-base font-semibold text-slate-950 transition-opacity hover:opacity-90 disabled:opacity-60"
+      className="min-h-11 w-full rounded-md bg-accent px-4 text-base font-semibold text-canvas transition-opacity hover:opacity-90 disabled:opacity-60"
     >
       {children}
     </button>

@@ -27,8 +27,8 @@ export function MultiSelectQuestion({ question, values, onChange }: MultiSelectQ
 
   return (
     <fieldset className="border-0 p-0">
-      <legend className="text-lg font-semibold text-slate-100">{question.label}</legend>
-      <p className="mt-1 text-sm text-slate-400">{buildSelectionHint(question, values.length)}</p>
+      <legend className="text-lg font-semibold text-ink">{question.label}</legend>
+      <p className="mt-1 text-sm text-ink-muted">{buildSelectionHint(question, values.length)}</p>
       <div className="mt-4 flex flex-col gap-2">
         {question.options.map((option) => {
           const isSelected = values.includes(option.value);
@@ -46,7 +46,7 @@ export function MultiSelectQuestion({ question, values, onChange }: MultiSelectQ
                 onChange={() => {
                   handleToggle(option.value);
                 }}
-                className="size-4 shrink-0 accent-slate-200"
+                className="size-4 shrink-0 accent-accent"
               />
               <span>{option.label}</span>
             </label>

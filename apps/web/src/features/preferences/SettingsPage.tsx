@@ -18,11 +18,11 @@ export function SettingsPage() {
   return (
     <main className="mx-auto min-h-dvh w-full max-w-md px-4 py-6 sm:px-6 sm:py-8">
       <header>
-        <Link to="/" className="text-sm text-slate-400 underline-offset-2 hover:underline">
+        <Link to="/" className="text-sm text-ink-muted underline-offset-2 hover:underline">
           ← Dashboard
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold text-slate-100">Preferences</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="mt-3 text-2xl font-semibold text-ink">Preferences</h1>
+        <p className="mt-1 text-sm text-ink-muted">
           Editing these rebuilds your dashboard and starts a new preference version.
         </p>
       </header>

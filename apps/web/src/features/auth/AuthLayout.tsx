@@ -16,11 +16,11 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
   return (
     <main className="flex min-h-dvh flex-col justify-center px-4 py-10 sm:px-6">
       <div className="mx-auto w-full max-w-sm">
-        <p className="text-sm font-medium text-slate-500">AI Crypto Advisor</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-100">{title}</h1>
-        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        <p className="text-sm font-medium text-ink-faint">AI Crypto Advisor</p>
+        <h1 className="mt-1 text-2xl font-semibold text-ink">{title}</h1>
+        <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>
         <div className="mt-6">{children}</div>
-        <p className="mt-6 text-center text-sm text-slate-400">{footer}</p>
+        <p className="mt-6 text-center text-sm text-ink-muted">{footer}</p>
       </div>
     </main>
   );
