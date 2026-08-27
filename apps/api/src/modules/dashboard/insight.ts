@@ -13,9 +13,26 @@ type InsightPreference = Pick<PreferenceDocument, 'assets' | 'investorType' | 'r
 const MAX_PROMPT_COINS = 10;
 const MAX_RESPONSE_WORDS_HINT = 100;
 
+// Emphasis and heading markers only. Leading `-` bullets are left alone: they
+// read as ordinary punctuation, where stripping them would run list items
+// together into one unpunctuated line.
+const MARKDOWN_SYNTAX = /(?:\*\*|__|[*_`])|^#{1,6}\s+/gm;
+
+// No dollar amount is ever put in the prompt, so any in the reply is invented.
+// Percentages go unchecked by design: they are supplied, and matching them back
+// to source would trip the rejection below on every rounding difference.
+const CURRENCY_FIGURE = /\$\s*\d/;
+
+const SYSTEM_PROMPT =
+  `You are a concise crypto market analyst. Keep the response under ${MAX_RESPONSE_WORDS_HINT} words. ` +
+  'Write plain prose: no Markdown, headings, bold, italics or code formatting. ' +
+  'Cite only the percentage changes given in the market data. Never state a dollar amount, ' +
+  'a price, a price target, a stop-loss, or an entry or exit level. ' +
+  'Explain what the data implies for the reader profile rather than instructing a specific trade.';
+
 function toChangeLine(coin: CoinMarket): string {
   const change = coin.priceChangePercentage24h ?? 0;
-  return `${coin.name}: $${coin.currentPrice} (${change.toFixed(2)}% 24h)`;
+  return `${coin.name}: ${change.toFixed(2)}% 24h`;
 }
 
 function buildPrompt(preference: InsightPreference, coins: CoinMarket[]): ChatMessage[] {
@@ -23,22 +40,31 @@ function buildPrompt(preference: InsightPreference, coins: CoinMarket[]): ChatMe
     coins.slice(0, MAX_PROMPT_COINS).map(toChangeLine).join('\n') || 'No market data available.';
 
   const userPrompt =
-    `Write a short, actionable daily crypto insight for a ${preference.investorType} investor ` +
+    `Write a short daily crypto insight for a ${preference.investorType} investor ` +
     `with ${preference.riskTolerance} risk tolerance, tracking: ${preference.assets.join(', ')}.\n\n` +
-    `Current market data:\n${coinLines}`;
+    `24h market moves:\n${coinLines}`;
 
   return [
-    {
-      role: 'system',
-      content: `You are a concise crypto market analyst. Keep responses under ${MAX_RESPONSE_WORDS_HINT} words.`,
-    },
+    { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
   ];
 }
 
+/**
+ * Generated text is untrusted input, not a trusted upstream payload, and the
+ * prompt's rules are a request rather than a guarantee. Formatting mistakes are
+ * repaired; a fabricated figure rejects the whole reply, handing the request to
+ * getCachedContent's cache-then-fallback tiers rather than shipping a false number.
+ */
 async function fetchInsight(preference: InsightPreference, coins: CoinMarket[]): Promise<Insight> {
   const reply = await chatCompletion(buildPrompt(preference, coins));
-  return { id: toUtcDay(), text: reply.trim(), model: env.HF_MODEL };
+  const text = reply.replaceAll(MARKDOWN_SYNTAX, '').trim();
+
+  if (CURRENCY_FIGURE.test(text)) {
+    throw new Error('Insight rejected: the reply quoted a dollar figure it was never given');
+  }
+
+  return { id: toUtcDay(), text, model: env.HF_MODEL };
 }
 
 interface Performers {

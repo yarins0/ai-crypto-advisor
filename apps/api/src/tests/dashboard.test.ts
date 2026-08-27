@@ -413,6 +413,53 @@ describe('AI insight', () => {
     expect(text.match(/Bitcoin/g)).toHaveLength(1);
   });
 
+  // Markdown is a formatting mistake with no truth content, so the reply is
+  // repaired and still served live — the opposite of the rejection below.
+  it('strips Markdown syntax from a live reply instead of rejecting it', async () => {
+    mockUpstreamFetch();
+    mockChatCompletion.mockResolvedValueOnce('**Daily Insight**\n\nBitcoin _cooled_ 1.50% today.');
+    const { accessToken } = await registerAndOnboard({ contentTypes: ['insight'] });
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${accessToken}`);
+    const insight = (response.body as DashboardResponse).sections.insight;
+
+    expect(insight?.source).toBe('live');
+    expect(insight?.data.text).toBe('Daily Insight\n\nBitcoin cooled 1.50% today.');
+  });
+
+  it('rejects a live reply quoting a dollar figure and degrades to the fallback', async () => {
+    silenceConsoleWarn();
+    mockUpstreamFetch();
+    mockChatCompletion.mockResolvedValueOnce('Set a stop-loss at $95 and a target at $110.');
+    const { accessToken } = await registerAndOnboard({ contentTypes: ['insight'] });
+
+    const response = await request(app)
+      .get('/api/dashboard')
+      .set('Authorization', `Bearer ${accessToken}`);
+    const insight = (response.body as DashboardResponse).sections.insight;
+
+    expect(insight?.source).toBe('fallback');
+    expect(insight?.data.model).toBeNull();
+    expect(insight?.data.text).not.toContain('$');
+  });
+
+  // The other half of the same rule: rejecting every dollar figure is only
+  // coherent because none is ever supplied, so none can be legitimate.
+  it('sends no dollar figure to the model in the first place', async () => {
+    mockUpstreamFetch();
+    mockChatCompletion.mockResolvedValueOnce('Bitcoin cooled 1.50% today.');
+    const { accessToken } = await registerAndOnboard({ contentTypes: ['insight'] });
+
+    await request(app).get('/api/dashboard').set('Authorization', `Bearer ${accessToken}`);
+    const prompt = (mockChatCompletion.mock.lastCall?.[0] ?? [])
+      .map((message) => message.content)
+      .join('\n');
+
+    expect(prompt).not.toContain('$');
+  });
+
   it("keys the insight's id on today's UTC calendar day", async () => {
     silenceConsoleWarn();
     mockUpstreamFetch();
