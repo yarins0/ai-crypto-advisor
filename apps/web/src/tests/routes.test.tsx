@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthResponse } from '@aca/shared';
 
+import { AppRoutes } from '../app/routes.js';
 import { SESSION_QUERY_KEY } from '../features/auth/use-session.js';
 import { fetchDashboard } from '../features/dashboard/api.js';
 import { ApiError } from '../lib/api/client.js';
 import { createQueryClient } from '../lib/query-client.js';
-import { AppRoutes } from './routes.js';
 
 // Held pending rather than resolved: these tests assert where the router landed,
 // and a real request would only add retries and noise to that question.

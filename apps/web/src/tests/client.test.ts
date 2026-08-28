@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError, apiRequest } from './client.js';
-import { getAccessToken, setAccessToken } from './session.js';
+import { ApiError, apiRequest } from '../lib/api/client.js';
+import { getAccessToken, setAccessToken } from '../lib/api/session.js';
 
 const REFRESH_PATH = '/api/auth/refresh';
 

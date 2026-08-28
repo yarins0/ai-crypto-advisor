@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthResponse } from '@aca/shared';
 
-import { DASHBOARD_QUERY_KEY } from '../dashboard/use-dashboard.js';
-import { createQueryClient } from '../../lib/query-client.js';
-import { login } from './api.js';
-import { SESSION_QUERY_KEY, useLogin } from './use-session.js';
+import { login } from '../features/auth/api.js';
+import { SESSION_QUERY_KEY, useLogin } from '../features/auth/use-session.js';
+import { DASHBOARD_QUERY_KEY } from '../features/dashboard/use-dashboard.js';
+import { createQueryClient } from '../lib/query-client.js';
 
-vi.mock('./api.js', () => ({
+vi.mock('../features/auth/api.js', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),

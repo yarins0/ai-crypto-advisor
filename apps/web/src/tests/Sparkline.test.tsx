@@ -1,7 +1,7 @@
 import { render, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { Sparkline, getSparklineColorClass } from './Sparkline.js';
+import { Sparkline, getSparklineColorClass } from '../components/Sparkline.js';
 
 // Matches the shape of a committed fallback series, the shortest the API returns.
 const FALLBACK_SERIES = [80_100, 79_600, 79_900, 78_800, 79_200, 78_400, 78_000];
@@ -36,7 +36,7 @@ describe('Sparkline', () => {
   it('draws the seven-point series the fallbacks return', async () => {
     // Warmed first so the assertion races only React's re-render, not Vite
     // transforming recharts and its d3 tree on demand.
-    await import('./SparklineChart.js');
+    await import('../components/SparklineChart.js');
     const container = renderSparkline(FALLBACK_SERIES);
 
     await waitFor(() => {

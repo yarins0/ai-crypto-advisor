@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { OnboardingQuestion } from '@aca/shared';
 
-import { createQueryClient } from '../../lib/query-client.js';
-import { savePreferences } from '../preferences/api.js';
-import { OnboardingWizard } from './OnboardingWizard.js';
+import { OnboardingWizard } from '../features/onboarding/OnboardingWizard.js';
+import { savePreferences } from '../features/preferences/api.js';
+import { createQueryClient } from '../lib/query-client.js';
 
-vi.mock('../preferences/api.js', () => ({
+vi.mock('../features/preferences/api.js', () => ({
   fetchPreferences: vi.fn(),
   savePreferences: vi.fn(() => Promise.resolve({ preferences: null })),
 }));

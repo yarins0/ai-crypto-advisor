@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatPercentChange, formatPrice, formatRelativeTime } from './format.js';
+import { formatPercentChange, formatPrice, formatRelativeTime } from '../lib/format.js';
 
 const NOW = Date.parse('2026-08-27T12:00:00.000Z');
 

@@ -6,12 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { VoteResponse, VotesListResponse } from '@aca/shared';
 
-import { ApiError } from '../../lib/api/client.js';
-import { createQueryClient } from '../../lib/query-client.js';
-import { VoteButtons } from './VoteButtons.js';
-import { castVote, fetchVotes } from './api.js';
+import { VoteButtons } from '../features/votes/VoteButtons.js';
+import { castVote, fetchVotes } from '../features/votes/api.js';
+import { ApiError } from '../lib/api/client.js';
+import { createQueryClient } from '../lib/query-client.js';
 
-vi.mock('./api.js', () => ({ fetchVotes: vi.fn(), castVote: vi.fn() }));
+vi.mock('../features/votes/api.js', () => ({ fetchVotes: vi.fn(), castVote: vi.fn() }));
 
 const PREFERENCE_VERSION = 3;
 
