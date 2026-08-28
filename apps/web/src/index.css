@@ -90,6 +90,25 @@ body {
   outline-offset: 2px;
 }
 
+/* Cards pack into columns by height rather than sitting in rows. A row grid
+   leaves a column-length hole beside a short card whenever the section count is
+   odd, because every cell in a row reserves the tallest card's height. */
+.card-columns {
+  column-gap: 1rem;
+}
+
+.card-columns > * {
+  margin-bottom: 1rem;
+  /* A card split across two columns reads as two broken cards. */
+  break-inside: avoid;
+}
+
+@media (min-width: 64rem) {
+  .card-columns {
+    columns: 2;
+  }
+}
+
 /* Cards arrive in sequence rather than all at once, which reads as the page
    assembling itself. Declared against the grid so the skeleton and the real
    cards inherit the same timing without either knowing about the other. */
