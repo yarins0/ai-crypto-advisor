@@ -374,8 +374,10 @@ things follow:
   `POST`-only refresh and logout routes. No CSRF-token machinery is needed.
 - CORS stops being load-bearing. `WEB_ORIGIN` and the `cors` middleware stay for direct
   local development against `localhost:4000`, not for production.
-- The web client calls the relative path `/api/...`. `VITE_API_URL` becomes a
-  local-development override only (M5).
+- The web client calls the relative path `/api/...`. **Corrected 2026-08-28:** this said
+  `VITE_API_URL` would become a local-development override. It never shipped — `vite.config.ts`
+  proxies `/api` to `localhost:4000` instead, which reproduces the deployed topology rather
+  than bypassing it, so no web-side variable exists and `apps/web/.env.example` was deleted.
 
 Cost: a `vercel.json` `rewrites` block (M7) and one extra network hop.
 
