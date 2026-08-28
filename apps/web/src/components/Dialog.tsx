@@ -34,12 +34,22 @@ export function Dialog({ isOpen, title, children, onClose }: DialogProps) {
     }
   }, [isOpen]);
 
+  // A backdrop click lands on the dialog element itself, since the click
+  // coordinates fall outside every child's box; a click inside always hits a
+  // child instead, so comparing the target is enough to tell them apart.
+  function handleBackdropClick(event: React.MouseEvent<HTMLDialogElement>): void {
+    if (event.target === dialogRef.current) {
+      onClose();
+    }
+  }
+
   return (
     <dialog
       ref={dialogRef}
       // Fires for Escape and for close() alike, so the parent's open state
       // cannot drift from the element's.
       onClose={onClose}
+      onClick={handleBackdropClick}
       aria-labelledby={titleId}
       className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-raised backdrop:bg-canvas/70 motion-safe:animate-rise-in"
     >
