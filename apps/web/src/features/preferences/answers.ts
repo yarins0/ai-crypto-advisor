@@ -1,5 +1,7 @@
 import { preferencesRequestSchema } from '@aca/shared';
 import type {
+  AssetId,
+  ContentType,
   InvestorType,
   OnboardingQuestion,
   PreferencesRequest,
@@ -20,11 +22,17 @@ const TUNED_CONTENT_TYPE = 'insight';
 
 const TUNING_QUESTION_IDS: readonly OnboardingQuestion['id'][] = ['investorType', 'riskTolerance'];
 
-// Every vote records the profile it was cast under, so these two are sent even
+// Every content type but memes reads preference.assets (see buildDashboard in
+// apps/api/src/modules/dashboard/service.ts), so the coin picker is only worth
+// asking when at least one of these is selected.
+const ASSET_READING_CONTENT_TYPES: readonly ContentType[] = ['prices', 'news', 'insight'];
+
+// Every vote records the profile it was cast under, so these are sent even
 // when nobody was asked for them. The cost is that a snapshot cannot distinguish
 // a chosen value from a defaulted one.
 const DEFAULT_INVESTOR_TYPE: InvestorType = 'hodler';
 const DEFAULT_RISK_TOLERANCE: RiskTolerance = 'medium';
+const DEFAULT_ASSETS: AssetId[] = ['bitcoin'];
 
 /**
  * Asking someone to describe their risk appetite to receive a price ticker is
@@ -35,15 +43,23 @@ export function requiresTuning(answers: AnswerMap): boolean {
   return answers.contentTypes.includes(TUNED_CONTENT_TYPE);
 }
 
+/** Same friction removed for the coin picker: a memes-only dashboard never reads it. */
+export function requiresAssets(answers: AnswerMap): boolean {
+  return answers.contentTypes.some((contentType) =>
+    ASSET_READING_CONTENT_TYPES.includes(contentType as ContentType),
+  );
+}
+
 /** The questions worth putting in front of someone, given what they have chosen so far. */
 export function selectAskableQuestions(
   questions: OnboardingQuestion[],
   answers: AnswerMap,
 ): OnboardingQuestion[] {
-  if (requiresTuning(answers)) {
-    return questions;
-  }
-  return questions.filter((question) => !TUNING_QUESTION_IDS.includes(question.id));
+  const skippedIds: readonly OnboardingQuestion['id'][] = [
+    ...(requiresTuning(answers) ? [] : TUNING_QUESTION_IDS),
+    ...(requiresAssets(answers) ? [] : (['assets'] as const)),
+  ];
+  return questions.filter((question) => !skippedIds.includes(question.id));
 }
 
 export function createEmptyAnswers(): AnswerMap {
@@ -76,7 +92,7 @@ export function isAnswerComplete(question: OnboardingQuestion, selected: string[
  */
 export function toPreferencesRequest(answers: AnswerMap): PreferencesRequest {
   return preferencesRequestSchema.parse({
-    assets: answers.assets,
+    assets: answers.assets.length > 0 ? answers.assets : DEFAULT_ASSETS,
     investorType: answers.investorType[0] ?? DEFAULT_INVESTOR_TYPE,
     contentTypes: answers.contentTypes,
     riskTolerance: answers.riskTolerance[0] ?? DEFAULT_RISK_TOLERANCE,

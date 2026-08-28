@@ -25,6 +25,7 @@ const QUESTIONS: OnboardingQuestion[] = [
       { value: 'prices', label: 'Prices' },
       { value: 'news', label: 'News' },
       { value: 'insight', label: 'AI insight' },
+      { value: 'memes', label: 'Memes' },
     ],
     min: 1,
   },
@@ -164,6 +165,34 @@ describe('OnboardingWizard', () => {
     // A vote still records the profile it was cast under, so the pair is sent.
     expect(vi.mocked(savePreferences).mock.calls[0]?.[0]).toEqual({
       contentTypes: ['prices'],
+      assets: ['bitcoin'],
+      investorType: 'hodler',
+      riskTolerance: 'medium',
+    });
+  });
+
+  it('shows no denominator until contentTypes has an answer', () => {
+    renderWizard();
+
+    expect(screen.getByText('Step 1')).toBeInTheDocument();
+    expect(screen.queryByText(/Step 1 of/)).not.toBeInTheDocument();
+  });
+
+  it('skips the coin picker, and every other question, when only memes is selected', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Memes' }));
+
+    // None of assets, investorType or riskTolerance are read for a memes-only
+    // dashboard, so contentTypes is the only question left to ask.
+    expect(screen.getByText('Step 1 of 1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+
+    // The server still requires a non-empty assets array even though a
+    // memes-only vote never reads it, so a single default coin satisfies it.
+    expect(vi.mocked(savePreferences).mock.calls[0]?.[0]).toEqual({
+      contentTypes: ['memes'],
       assets: ['bitcoin'],
       investorType: 'hodler',
       riskTolerance: 'medium',

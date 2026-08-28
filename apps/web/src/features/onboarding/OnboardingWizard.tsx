@@ -43,7 +43,11 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
   }
 
   const questionId = question.id;
-  const isLastStep = safeStepIndex === askableQuestions.length - 1;
+  // contentTypes is always step 1 and is what selectAskableQuestions branches
+  // on, so the list itself — not just its displayed total — is undecided
+  // until it has an answer: askableQuestions.length can't be trusted yet.
+  const isStepCountKnown = safeStepIndex > 0 || isAnswerComplete(question, answers[questionId]);
+  const isLastStep = isStepCountKnown && safeStepIndex === askableQuestions.length - 1;
   // The final step checks every answer, not just its own: a user can step back
   // and clear an earlier one, and toPreferencesRequest throws on an incomplete set.
   const canContinue = isLastStep
@@ -70,19 +74,23 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
             Back re-renders this text in place, which a screen reader would
             otherwise never notice since focus stays on the button below. */}
         <p role="status" className="text-sm text-ink-faint">
-          Step {safeStepIndex + 1} of {askableQuestions.length}
+          {isStepCountKnown
+            ? `Step ${String(safeStepIndex + 1)} of ${String(askableQuestions.length)}`
+            : `Step ${String(safeStepIndex + 1)}`}
         </p>
         <div className="mt-2 h-1 rounded-full bg-line">
           <div
             className="h-1 rounded-full bg-accent transition-all"
             style={{
-              width: `${String(((safeStepIndex + 1) / askableQuestions.length) * PERCENT)}%`,
+              width: isStepCountKnown
+                ? `${String(((safeStepIndex + 1) / askableQuestions.length) * PERCENT)}%`
+                : '0%',
             }}
           />
         </div>
       </header>
 
-      <div className="mt-8 flex-1">
+      <div className="mt-8">
         <QuestionStep question={question} selected={answers[questionId]} onChange={handleChange} />
       </div>
 
@@ -92,7 +100,7 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
         </div>
       )}
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-12 flex gap-3">
         {safeStepIndex === 0 ? null : (
           <button
             type="button"
