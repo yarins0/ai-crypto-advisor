@@ -96,6 +96,26 @@ describe('apiRequest', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  // A wrong password answers 401 as well, and no refresh can repair that: routing
+  // it through the retry replaces the credential error with the refresh failure's.
+  it('surfaces the endpoint message without refreshing when the request carried no token', async () => {
+    setAccessToken(null);
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(jsonResponse(401, { error: 'Invalid email or password' })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const error = await apiRequest('/api/auth/login', passThroughParser, {
+      method: 'POST',
+      body: { email: 'demo@example.com', password: 'wrong' },
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).message).toBe('Invalid email or password');
+    // One call total, so neither a refresh nor a retry was attempted.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('reports the validation field map from a 400 so a form can render per-field errors', async () => {
     vi.stubGlobal(
       'fetch',

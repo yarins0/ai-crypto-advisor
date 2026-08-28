@@ -134,8 +134,12 @@ export async function apiRequest<TData>(
   parser: ResponseParser<TData>,
   options: ApiRequestInit = {},
 ): Promise<TData> {
+  // Read before the send so it reflects what the request actually carried. A 401
+  // on a request with no Authorization header is the endpoint's own verdict —
+  // refreshing cannot repair it and would discard its message for the refresh's.
+  const hadAccessToken = getAccessToken() !== null;
   const response = await sendRequest(path, options);
-  if (response.status !== UNAUTHORIZED_STATUS) {
+  if (response.status !== UNAUTHORIZED_STATUS || !hadAccessToken) {
     return readResponse(response, parser);
   }
   // Exactly one retry: with a freshly minted access token the request either
