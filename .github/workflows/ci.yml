@@ -14,7 +14,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # install rather than ci: the lockfile has no entries for esbuild's platform
+      # packages, which npm 11 rejects and the Windows machine this is developed on
+      # cannot record.
+      - run: npm install
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
