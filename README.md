@@ -212,9 +212,9 @@ Read-only MongoDB Atlas credentials are in the submission email, not in this rep
 credentials committed to a public repo are found by scrapers within hours, and Atlas may
 disable the user mid-review.
 
-**The API sleeps.** Render's free tier idles the service after 15 minutes, so the first request
-after a quiet period takes roughly 50 seconds while it wakes. The UI shows a loading state
-rather than an error; a second load is fast.
+**The API sleeps.** Render's free tier idles the service after 15 minutes, so the first load
+after a quiet period takes roughly 50 seconds to wake it — the UI shows a loading state, not an
+error, and every load after that is fast.
 
 ## 📁 Repo layout
 

@@ -335,15 +335,22 @@ regenerate the lockfile from a real Linux install and restore `npm ci` in all th
 
 ## 8. Risk register
 
-| Risk                                                                                       | Likelihood | Mitigation                                                                                    |
-| ------------------------------------------------------------------------------------------ | ---------- | --------------------------------------------------------------------------------------------- |
-| Render free tier sleeps after 15 min idle → ~50s cold start when a reviewer opens the link | High       | Keep-warm ping from a GitHub Actions schedule; honest loading state; documented in the README |
-| CoinGecko rate-limits (free tier is tight)                                                 | High       | Server-side shared cache — one upstream call serves all users, not one per user               |
-| Cointelegraph RSS structure changes, or a tag feed doesn't exist for a chosen coin         | Medium     | Committed static fallback; news is never the reason the page fails                            |
-| HF free inference cold-start or model deprecation                                          | High       | Model id is env-configurable; deterministic fallback insight from real market data            |
-| Reddit blocks cloud IPs                                                                    | High       | Static meme JSON is the primary source, not the fallback                                      |
-| Atlas requires an IP allowlist Render can't predict                                        | Medium     | Allow `0.0.0.0/0` with a strong generated password (standard for PaaS-hosted apps)            |
-| "Go big" scope creep eats the deadline                                                     | Medium     | Milestones are ordered so M0–M5 alone is a complete, submittable app; M6 polish is additive   |
+| Risk                                                                                       | Likelihood | Mitigation                                                                                  |
+| ------------------------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------- |
+| Render free tier sleeps after 15 min idle → ~50s cold start when a reviewer opens the link | High       | Honest loading state; a one-line warning in the README. No keep-warm ping — see below       |
+| CoinGecko rate-limits (free tier is tight)                                                 | High       | Server-side shared cache — one upstream call serves all users, not one per user             |
+| Cointelegraph RSS structure changes, or a tag feed doesn't exist for a chosen coin         | Medium     | Committed static fallback; news is never the reason the page fails                          |
+| HF free inference cold-start or model deprecation                                          | High       | Model id is env-configurable; deterministic fallback insight from real market data          |
+| Reddit blocks cloud IPs                                                                    | High       | Static meme JSON is the primary source, not the fallback                                    |
+| Atlas requires an IP allowlist Render can't predict                                        | Medium     | Allow `0.0.0.0/0` with a strong generated password (standard for PaaS-hosted apps)          |
+| "Go big" scope creep eats the deadline                                                     | Medium     | Milestones are ordered so M0–M5 alone is a complete, submittable app; M6 polish is additive |
+
+**Keep-warm ping dropped, 2026-08-28.** The row above previously promised one from a GitHub
+Actions schedule. Scheduled workflows are queued against shared runner capacity and run late
+often enough that a 10-minute cron cannot be relied on to beat a 15-minute idle timeout, and
+keeping the service awake would consume roughly 730 of Render's 750 free instance-hours a
+month. The cold start is accepted and disclosed instead: a reviewer waits once, and the
+README says so in a sentence.
 
 ## 9. Resolved decisions
 
