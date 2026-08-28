@@ -6,6 +6,8 @@ interface MultiSelectQuestionProps {
   question: OnboardingQuestion;
   values: string[];
   onChange: (values: string[]) => void;
+  /** Set where a surrounding title already names the question. */
+  isLabelHidden?: boolean;
 }
 
 function buildSelectionHint(question: OnboardingQuestion, selectedCount: number): string {
@@ -15,7 +17,12 @@ function buildSelectionHint(question: OnboardingQuestion, selectedCount: number)
   return `${String(selectedCount)} of ${String(question.max)} selected`;
 }
 
-export function MultiSelectQuestion({ question, values, onChange }: MultiSelectQuestionProps) {
+export function MultiSelectQuestion({
+  question,
+  values,
+  onChange,
+  isLabelHidden = false,
+}: MultiSelectQuestionProps) {
   const isAtMaximum = question.max !== undefined && values.length >= question.max;
 
   function handleToggle(optionValue: string): void {
@@ -27,7 +34,9 @@ export function MultiSelectQuestion({ question, values, onChange }: MultiSelectQ
 
   return (
     <fieldset className="border-0 p-0">
-      <legend className="text-lg font-semibold text-ink">{question.label}</legend>
+      <legend className={isLabelHidden ? 'sr-only' : 'text-lg font-semibold text-ink'}>
+        {question.label}
+      </legend>
       <p className="mt-1 text-sm text-ink-muted">{buildSelectionHint(question, values.length)}</p>
       <div className="mt-4 flex flex-col gap-2">
         {question.options.map((option) => {

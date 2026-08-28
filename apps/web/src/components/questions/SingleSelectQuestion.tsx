@@ -6,14 +6,23 @@ interface SingleSelectQuestionProps {
   question: OnboardingQuestion;
   value: string | undefined;
   onChange: (value: string) => void;
+  /** Set where a surrounding title already names the question. */
+  isLabelHidden?: boolean;
 }
 
-export function SingleSelectQuestion({ question, value, onChange }: SingleSelectQuestionProps) {
+export function SingleSelectQuestion({
+  question,
+  value,
+  onChange,
+  isLabelHidden = false,
+}: SingleSelectQuestionProps) {
   return (
     // fieldset/legend rather than a div and a heading: it is what groups the
     // radios for a screen reader, so the question is read with each option.
     <fieldset className="border-0 p-0">
-      <legend className="text-lg font-semibold text-ink">{question.label}</legend>
+      <legend className={isLabelHidden ? 'sr-only' : 'text-lg font-semibold text-ink'}>
+        {question.label}
+      </legend>
       <div className="mt-4 flex flex-col gap-2">
         {question.options.map((option) => (
           <label key={option.value} className={getOptionRowClass(value === option.value)}>

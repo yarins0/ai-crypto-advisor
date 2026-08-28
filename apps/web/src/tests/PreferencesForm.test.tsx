@@ -70,32 +70,52 @@ function renderForm(initialAnswers: AnswerMap) {
   );
 }
 
+async function openGroup(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole('button', { name: new RegExp(label) }));
+}
+
 describe('PreferencesForm', () => {
-  it('hides the tuning questions while the insight section is off', () => {
+  it('summarises each group without opening it', () => {
     renderForm(PRICES_ONLY_ANSWERS);
 
-    expect(screen.queryByRole('radio', { name: 'HODLer' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio', { name: 'Low' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Dashboard sections/ })).toHaveTextContent('Prices');
+    expect(screen.getByRole('button', { name: /Coins/ })).toHaveTextContent('Bitcoin');
+  });
+
+  it('keeps every question behind its group until asked for', () => {
+    renderForm(PRICES_ONLY_ANSWERS);
+
+    expect(screen.queryByRole('checkbox', { name: 'Bitcoin' })).not.toBeInTheDocument();
+  });
+
+  it('hides the tuning group while the insight section is off', () => {
+    renderForm(PRICES_ONLY_ANSWERS);
+
+    expect(screen.queryByRole('button', { name: /Insight tuning/ })).not.toBeInTheDocument();
   });
 
   // Adding the section that reads them is the moment they become worth asking,
-  // so they have to reappear here rather than keep a default nobody chose.
-  it('reopens the tuning questions when the insight section is added', async () => {
+  // so the group has to reappear rather than keep a default nobody chose.
+  it('reopens the tuning group when the insight section is added', async () => {
     const user = userEvent.setup();
     renderForm(PRICES_ONLY_ANSWERS);
 
+    await openGroup(user, 'Dashboard sections');
     await user.click(screen.getByRole('checkbox', { name: 'AI insight' }));
 
-    expect(screen.getByRole('radio', { name: 'HODLer' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Low' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Insight tuning/ })).toBeInTheDocument();
   });
 
-  it('lets a reopened answer be changed and saved', async () => {
+  it('saves an answer changed inside a dialog', async () => {
     const user = userEvent.setup();
     renderForm(PRICES_ONLY_ANSWERS);
 
+    await openGroup(user, 'Dashboard sections');
     await user.click(screen.getByRole('checkbox', { name: 'AI insight' }));
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await openGroup(user, 'Insight tuning');
     await user.click(screen.getByRole('radio', { name: 'Day trader' }));
+    await user.click(screen.getByRole('button', { name: 'Close' }));
     await user.click(screen.getByRole('button', { name: 'Save preferences' }));
 
     expect(vi.mocked(savePreferences).mock.calls[0]?.[0]).toEqual({
@@ -106,9 +126,23 @@ describe('PreferencesForm', () => {
     });
   });
 
+  // A dialog closes leaving no trace on the page, so the page has to say that
+  // something is still unsaved.
+  it('warns that a dialog edit has not been saved yet', async () => {
+    const user = userEvent.setup();
+    renderForm(PRICES_ONLY_ANSWERS);
+
+    expect(screen.queryByText('You have unsaved changes.')).not.toBeInTheDocument();
+
+    await openGroup(user, 'Dashboard sections');
+    await user.click(screen.getByRole('checkbox', { name: 'AI insight' }));
+
+    expect(screen.getByText('You have unsaved changes.')).toBeInTheDocument();
+  });
+
   // Hidden is not discarded: the stored pair still travels with every save,
   // because a vote cast afterwards records the profile it was cast under.
-  it('still sends the tuning pair while it is hidden', async () => {
+  it('still sends the tuning pair while its group is hidden', async () => {
     const user = userEvent.setup();
     renderForm(PRICES_ONLY_ANSWERS);
 
