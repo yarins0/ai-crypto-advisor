@@ -14,6 +14,8 @@ import { createQueryClient } from '../lib/query-client.js';
 vi.mock('../features/votes/api.js', () => ({ fetchVotes: vi.fn(), castVote: vi.fn() }));
 
 const PREFERENCE_VERSION = 3;
+// What a dashboard refetch would deliver after preferences moved on.
+const REFRESHED_PREFERENCE_VERSION = 4;
 
 const EXISTING_UPVOTE: VotesListResponse = {
   votes: [
@@ -27,12 +29,16 @@ const EXISTING_UPVOTE: VotesListResponse = {
   ],
 };
 
-function renderVoteButtons(queryClient: QueryClient = createQueryClient()): QueryClient {
-  render(
+function voteButtonsWith(preferenceVersion: number, queryClient: QueryClient) {
+  return (
     <QueryClientProvider client={queryClient}>
-      <VoteButtons section="prices" itemId="bitcoin" preferenceVersion={PREFERENCE_VERSION} />
-    </QueryClientProvider>,
+      <VoteButtons section="prices" itemId="bitcoin" preferenceVersion={preferenceVersion} />
+    </QueryClientProvider>
   );
+}
+
+function renderVoteButtons(queryClient: QueryClient = createQueryClient()): QueryClient {
+  render(voteButtonsWith(PREFERENCE_VERSION, queryClient));
   return queryClient;
 }
 
@@ -84,6 +90,35 @@ describe('VoteButtons', () => {
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
     });
+  });
+
+  // Nothing re-sends the vote after a conflict, so the recovery only completes
+  // on the user's next press. What has to hold is that the press carries the
+  // version the refetch delivered, not the one the conflict rejected.
+  it('carries the refreshed preference version when the vote is cast again', async () => {
+    const user = userEvent.setup();
+    vi.mocked(castVote).mockRejectedValueOnce(new ApiError(409, 'Preferences changed'));
+    const queryClient = createQueryClient();
+    const { rerender } = render(voteButtonsWith(PREFERENCE_VERSION, queryClient));
+
+    await user.click(upvoteButton());
+    await waitFor(() => {
+      expect(upvoteButton()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    // Stands in for the dashboard refetch the conflict triggered: this component
+    // learns the new version as a prop, and the invalidation that fetches it is
+    // covered above.
+    rerender(voteButtonsWith(REFRESHED_PREFERENCE_VERSION, queryClient));
+    await user.click(upvoteButton());
+
+    await waitFor(() => {
+      expect(vi.mocked(castVote)).toHaveBeenCalledTimes(2);
+    });
+    expect(vi.mocked(castVote).mock.calls.map((call) => call[0].preferenceVersion)).toEqual([
+      PREFERENCE_VERSION,
+      REFRESHED_PREFERENCE_VERSION,
+    ]);
   });
 
   it('clears the vote when the direction already cast is pressed again', async () => {
