@@ -18,7 +18,10 @@ export function PricesCard({ section, preferenceVersion }: PricesCardProps) {
       ) : (
         <ul className="divide-y divide-line">
           {section.data.map((coin) => (
-            <li key={coin.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            <li
+              key={coin.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0"
+            >
               {/* Decorative: the coin's name sits immediately beside it, so an
                   alt text here would make a screen reader announce it twice. */}
               <img
@@ -31,9 +34,11 @@ export function PricesCard({ section, preferenceVersion }: PricesCardProps) {
                 <p className="truncate text-sm font-medium text-ink">{coin.name}</p>
                 <p className="font-mono text-xs uppercase text-ink-faint">{coin.symbol}</p>
               </div>
-              {/* Withheld on a phone, where the row already competes for width
-                  and the figures beside it carry the same trend. */}
-              <div className="hidden shrink-0 sm:block">
+              {/* One instance that moves rather than two that hide: a display:none
+                  copy would still mount and render a chart for every coin. Below sm
+                  the row has no width left for it, so it wraps to a line of its own
+                  instead of being withheld from phones entirely. */}
+              <div className="order-last w-full sm:order-none sm:w-16 sm:shrink-0">
                 <Sparkline
                   points={coin.sparkline}
                   priceChangePercentage24h={coin.priceChangePercentage24h}

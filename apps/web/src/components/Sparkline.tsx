@@ -38,12 +38,10 @@ export function Sparkline({ points, priceChangePercentage24h }: SparklineProps) 
   return (
     // aria-hidden because the price and 24h change beside it state the same
     // trend as text; announcing the chart would only repeat them.
-    <div
-      aria-hidden
-      className={`h-5 w-16 shrink-0 ${getSparklineColorClass(priceChangePercentage24h)}`}
-    >
-      {/* Sized here rather than in the chart so the row holds its layout while
-          the chunk loads, and so a series too short to draw never requests it. */}
+    <div aria-hidden className={`h-5 w-full ${getSparklineColorClass(priceChangePercentage24h)}`}>
+      {/* Height is reserved here rather than in the chart so the row holds its
+          layout while the chunk loads. Width comes from the caller, which needs a
+          different one per breakpoint. A series too short to draw never requests it. */}
       {hasTrend ? (
         <Suspense fallback={null}>
           <SparklineChart points={points} />
