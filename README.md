@@ -19,7 +19,8 @@ just counters. The feature list is small on purpose: the engineering worth readi
 the dashboard does when CoinGecko rate-limits or Hugging Face cold-starts.
 
 **Live:** [ai-crypto-advisor-yarins0.vercel.app](https://ai-crypto-advisor-yarins0.vercel.app)
-· **Plan and architecture record:** [`docs/PLAN.md`](docs/PLAN.md)
+· **How it works:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+· **Why it works that way:** [`docs/PLAN.md`](docs/PLAN.md)
 
 ## 📑 Table of Contents
 
@@ -52,8 +53,8 @@ flowchart TB
   rewrite must precede the SPA fallback, or API calls resolve to `index.html`.
 - **Express 5 API** (`apps/api/src/app.ts`) mounts four routers behind `requireAuth`, with
   `requireOnboarded` gating the two that need a preference document. `GET /api/dashboard`
-  composes all four sections in parallel, so the client makes one round trip and never learns
-  which third-party APIs exist.
+  composes every selected section server-side, so the client makes one round trip and never
+  learns which third-party APIs exist.
 - **MongoDB Atlas** (`apps/api/src/lib/db.ts`) holds users, preferences, votes, refresh tokens
   and the content cache. Frankfurt, matching the Render region.
 - **ContentCache** is keyed per resource, not per user — one CoinGecko call serves everyone.
@@ -159,7 +160,7 @@ GET    /api/onboarding/questions server-driven quiz; the client renders it, neve
 GET    /api/preferences
 PUT    /api/preferences          onboarding submit and later edits share one endpoint
 
-GET    /api/dashboard            all four sections, composed in parallel
+GET    /api/dashboard            every selected section, composed in one round trip
 GET    /api/dashboard/meme       re-roll the meme only
 POST   /api/votes                upsert; value 0 clears
 GET    /api/votes                the caller's own votes
@@ -231,7 +232,8 @@ apps/
     src/lib/              cache, http client, db connection, error types
 packages/shared/          Zod schemas and inferred types, imported by both apps
 scripts/                  smoke.mjs · check-integrations.mjs
-docs/PLAN.md              architecture, data model, API contract, decision record
+docs/ARCHITECTURE.md      how the system works: topology, request path, flows
+docs/PLAN.md              why it works that way: data model, API contract, decisions
 render.yaml               API service blueprint
 vercel.json               SPA build and the /api rewrite
 ```
