@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Line, LineChart, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, ResponsiveContainer, YAxis } from 'recharts';
 
 interface SparklineChartProps {
   points: number[];
@@ -24,6 +24,10 @@ export function SparklineChart({ points }: SparklineChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={series} margin={CHART_MARGIN}>
+        {/* Recharts defaults the y domain to [0, dataMax], and a week of prices
+            spans a sliver of a coin's absolute value, so a zero-based axis drew
+            every series as a flat line. Hidden: the row states the figures. */}
+        <YAxis hide domain={['dataMin', 'dataMax']} />
         {/* Animation across fifteen simultaneous charts is visible jank, and the
             series does not change between renders, so there is nothing to animate. */}
         <Line
