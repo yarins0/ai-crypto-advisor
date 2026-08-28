@@ -70,9 +70,10 @@ function buildInit({ method = 'GET', body }: ApiRequestInit): RequestInit {
   return {
     method,
     headers,
-    // Same-origin in development (Vite proxy) and in production (Vercel
-    // rewrite), but stated so the VITE_API_URL escape hatch still sends the
-    // refresh cookie.
+    // Same-origin in both environments (Vite proxy, then the Vercel rewrite),
+    // so the fetch default would already send the refresh cookie. Stated
+    // explicitly because that default drops it silently if the API moves
+    // off-origin.
     credentials: 'include',
     body: body === undefined ? undefined : JSON.stringify(body),
   };
