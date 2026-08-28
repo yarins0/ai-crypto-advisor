@@ -7,14 +7,21 @@ import type {
   PreferencesResponse,
   RiskTolerance,
 } from '@aca/shared';
-import { contentTypes, curatedAssets, investorTypes, riskTolerances } from '@aca/shared';
+import {
+  contentTypes,
+  curatedAssetIds,
+  curatedAssets,
+  investorTypes,
+  riskTolerances,
+} from '@aca/shared';
 
 import { UserModel } from '../auth/user.model.js';
 import { PreferenceModel } from './model.js';
 import type { PreferenceDocument } from './model.js';
 
 const MIN_ASSETS = 1;
-const MAX_ASSETS = 10;
+// Not an arbitrary cap: it's the full curated list, so "select all" and "at the max" agree.
+const MAX_ASSETS = curatedAssetIds.length;
 
 const INVESTOR_TYPE_LABELS: Record<InvestorType, string> = {
   hodler: 'Hodler',

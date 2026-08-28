@@ -95,6 +95,26 @@ describe('OnboardingWizard', () => {
     expect(screen.getByRole('checkbox', { name: 'Bitcoin' })).toBeEnabled();
   });
 
+  it('selects up to the maximum with the select-all toggle, then clears with it', async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Prices' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Select all' }));
+
+    // Options 3 (Bitcoin, Ethereum, Solana), max 2: select-all stops at the
+    // cap rather than proposing a selection the shared schema would reject.
+    expect(screen.getByRole('checkbox', { name: 'Bitcoin' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Ethereum' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Solana' })).not.toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Bitcoin' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Ethereum' })).not.toBeChecked();
+  });
+
   it('keeps an earlier answer when the user steps back', async () => {
     const user = userEvent.setup();
     renderWizard();

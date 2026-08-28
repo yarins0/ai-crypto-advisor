@@ -16,7 +16,11 @@ export function PricesCard({ section, preferenceVersion }: PricesCardProps) {
       {section.data.length === 0 ? (
         <p className="text-sm text-ink-faint">No coins matched your selected assets.</p>
       ) : (
-        <ul className="divide-y divide-line">
+        // Bounded for the same reason NewsCard's list is: with the asset cap now
+        // equal to the full curated list, "select all" can serve as many rows as
+        // the news feed does, and an unbounded card just as easily defeats the
+        // column balancer.
+        <ul className="scroll-slim -mr-2 max-h-[28rem] divide-y divide-line overflow-y-auto overscroll-contain pr-2">
           {section.data.map((coin) => (
             <li
               key={coin.id}

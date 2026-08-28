@@ -15,7 +15,14 @@ export function NewsCard({ section, preferenceVersion }: NewsCardProps) {
       {section.data.length === 0 ? (
         <p className="text-sm text-ink-faint">No headlines for your topics right now.</p>
       ) : (
-        <ul className="divide-y divide-line">
+        // Bounded because the feed is the only section whose length is unbounded,
+        // and a card taller than half the grid defeats the column balancer.
+        // overscroll-contain stops the page scrolling once the list bottoms out.
+        // pr-2 keeps the rows clear of the thumb; -mr-2 pulls the ul's own box
+        // (and with it, the scrollbar the browser draws at that edge) out past
+        // the card's padding, since padding-right alone only insets the
+        // content and never relocates the scrollbar itself.
+        <ul className="scroll-slim -mr-2 max-h-[28rem] divide-y divide-line overflow-y-auto overscroll-contain pr-2">
           {section.data.map((item) => (
             <li key={item.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1">

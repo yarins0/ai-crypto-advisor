@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { assetIdSchema } from './assets.js';
+import { assetIdSchema, curatedAssetIds } from './assets.js';
 
 export const investorTypes = ['hodler', 'day_trader', 'nft_collector', 'yield_farmer'] as const;
 
@@ -14,7 +14,7 @@ export const riskTolerances = ['low', 'medium', 'high'] as const;
 
 /** Assets are CoinGecko ids ('bitcoin'), never tickers — the price integration keys on them. */
 export const preferencesRequestSchema = z.object({
-  assets: z.array(assetIdSchema).min(1).max(10),
+  assets: z.array(assetIdSchema).min(1).max(curatedAssetIds.length),
   investorType: z.enum(investorTypes),
   contentTypes: z.array(z.enum(contentTypes)).min(1),
   riskTolerance: z.enum(riskTolerances),

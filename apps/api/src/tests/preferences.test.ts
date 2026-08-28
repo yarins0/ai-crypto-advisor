@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+
+import { curatedAssetIds } from '@aca/shared';
+
 import { createApp } from '../app.js';
 
 const VALID_PASSWORD = 'Sup3rSecret!';
@@ -94,6 +97,42 @@ describe('PUT /api/preferences', () => {
       .send({ ...validPreferences, investorType: 'not-a-real-type' });
     expect(response.status).toBe(400);
     expect((response.body as ErrorBody).fields).toHaveProperty('investorType');
+  });
+
+  it('accepts every curated asset at once', async () => {
+    const { accessToken } = await registerUser();
+
+    const response = await request(app)
+      .put('/api/preferences')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ ...validPreferences, assets: [...curatedAssetIds] });
+    expect(response.status).toBe(200);
+    const created = (response.body as { preferences: PreferencesPayload }).preferences;
+    expect(created.assets).toEqual([...curatedAssetIds]);
+  });
+
+  it('rejects more assets than the curated list holds, even with a duplicate', async () => {
+    const { accessToken } = await registerUser();
+
+    const response = await request(app)
+      .put('/api/preferences')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ ...validPreferences, assets: [...curatedAssetIds, curatedAssetIds[0]] });
+    expect(response.status).toBe(400);
+    expect((response.body as ErrorBody).fields).toHaveProperty('assets');
+  });
+
+  it('rejects an asset id outside the curated list', async () => {
+    const { accessToken } = await registerUser();
+
+    const response = await request(app)
+      .put('/api/preferences')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ ...validPreferences, assets: ['dogecoin', 'not-a-real-coin'] });
+    expect(response.status).toBe(400);
+    // Zod flags the offending element by its array index, not the array field
+    // itself, so the key is "assets.1" rather than "assets".
+    expect((response.body as ErrorBody).fields?.['assets.1']).toBeDefined();
   });
 
   it('creates preferences at version 1 and marks the user onboarded', async () => {

@@ -24,6 +24,12 @@ export function MultiSelectQuestion({
   isLabelHidden = false,
 }: MultiSelectQuestionProps) {
   const isAtMaximum = question.max !== undefined && values.length >= question.max;
+  // Capped at max, not just options.length: "select all" must never propose a
+  // selection the shared schema would reject if max is ever below the option count.
+  const selectAllTarget = question.options
+    .map((option) => option.value)
+    .slice(0, question.max ?? question.options.length);
+  const isEverythingSelected = values.length === selectAllTarget.length;
 
   function handleToggle(optionValue: string): void {
     const isSelected = values.includes(optionValue);
@@ -32,12 +38,25 @@ export function MultiSelectQuestion({
     );
   }
 
+  function handleToggleAll(): void {
+    onChange(isEverythingSelected ? [] : selectAllTarget);
+  }
+
   return (
     <fieldset className="border-0 p-0">
       <legend className={isLabelHidden ? 'sr-only' : 'text-lg font-semibold text-ink'}>
         {question.label}
       </legend>
-      <p className="mt-1 text-sm text-ink-muted">{buildSelectionHint(question, values.length)}</p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <p className="text-sm text-ink-muted">{buildSelectionHint(question, values.length)}</p>
+        <button
+          type="button"
+          onClick={handleToggleAll}
+          className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+        >
+          {isEverythingSelected ? 'Clear all' : 'Select all'}
+        </button>
+      </div>
       <div className="mt-4 flex flex-col gap-2">
         {question.options.map((option) => {
           const isSelected = values.includes(option.value);
