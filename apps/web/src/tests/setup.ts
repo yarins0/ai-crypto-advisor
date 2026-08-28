@@ -28,3 +28,49 @@ if (HTMLDialogElement.prototype.showModal === undefined) {
     this.dispatchEvent(new Event('close'));
   };
 }
+
+/**
+ * jsdom performs no layout, so every element measures zero and ResizeObserver is
+ * absent entirely. Recharts' ResponsiveContainer asks for both and draws nothing
+ * at zero width, which would turn the sparkline test into an assertion that no
+ * chart exists. The stub reports one fixed box, once, per observed element.
+ *
+ * The size is arbitrary and load-bearing only in that it is non-zero: what the
+ * test checks is that a series reaches the chart, not the pixels it occupies.
+ */
+const OBSERVED_WIDTH_PX = 64;
+const OBSERVED_HEIGHT_PX = 20;
+
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  const observedSize: ResizeObserverSize = {
+    inlineSize: OBSERVED_WIDTH_PX,
+    blockSize: OBSERVED_HEIGHT_PX,
+  };
+
+  globalThis.ResizeObserver = class FixedBoxResizeObserver implements ResizeObserver {
+    readonly #onResize: ResizeObserverCallback;
+
+    constructor(onResize: ResizeObserverCallback) {
+      this.#onResize = onResize;
+    }
+
+    observe(target: Element): void {
+      const entry: ResizeObserverEntry = {
+        target,
+        contentRect: new DOMRect(0, 0, OBSERVED_WIDTH_PX, OBSERVED_HEIGHT_PX),
+        borderBoxSize: [observedSize],
+        contentBoxSize: [observedSize],
+        devicePixelContentBoxSize: [observedSize],
+      };
+      this.#onResize([entry], this);
+    }
+
+    unobserve(): void {
+      // Nothing is retained, so there is nothing to release.
+    }
+
+    disconnect(): void {
+      // Nothing is retained, so there is nothing to release.
+    }
+  };
+}
