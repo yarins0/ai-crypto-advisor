@@ -1532,6 +1532,35 @@ rather than hidden; quoted prompts below have had only obvious typos corrected.
 
 ---
 
+### Entry 062 — 2026-08-28 — app.ts:18 resolved after three sessions, by rejecting the binary it was posed as
+
+- **Prompt:** "what about app.ts:18?"
+- **AI action:** The question had been framed across three handoffs as 1-versus-2, with both
+  sides genuinely defensible, which is why it kept being deferred. Working the mechanics through
+  rather than restating the summary showed why it deadlocks: Express resolves `req.ip` by walking
+  `[socket, ...XFF reversed]` and returning the address `n` hops from the app, so through Vercel
+  `1` yields the edge address and `2` yields the real client — but on the publicly reachable
+  Render URL, Render appends the caller's address to whatever `X-Forwarded-For` they sent, so
+  under `2` the leftmost entry is attacker-controlled and the limiter falls to a rotated header.
+  Neither value is right because the question is the wrong one: `trust proxy` decides how
+  **coarse** the rate-limit key is, and the defect was that a per-person threshold of 10 had been
+  applied to a per-edge bucket. A third option follows — keep `1`, which nothing can forge, and
+  size the limits for the bucket it produces. Register and login raised to 30, both comments
+  rewritten, and the decision recorded in `PLAN.md` §9 with the rejected alternative and its cost.
+- **Outcome:** `ed1b779`. Gates green, smoke 67/67 against a restarted API, and the new ceiling
+  confirmed live rather than assumed — a probe returned `RateLimit-Policy: 30;w=3600`. Worth
+  noting the `app.ts` comment being replaced had said both proxies add a hop while the constant
+  trusted one, so it read as an oversight rather than a decision; a reviewer would have asked
+  about exactly that. A side effect closes a standing dev-workflow annoyance: `npm run smoke`
+  spends 3 register slots, so the old limit of 10 was what capped local runs at about three an
+  hour. **The deployed API still enforces 10 until these commits are pushed and Render
+  redeploys.**
+- **Decision owner:** human (chose keep-1-and-raise from three costed options); AI (autonomous)
+  for identifying that the binary framing was itself the problem, and for verifying the new limit
+  from the response headers instead of trusting the constant.
+
+---
+
 ## Maintaining this log
 
 This log is a personal working draft (see Entry 014) — it stays untracked and is
