@@ -16,8 +16,60 @@
   --color-accent: oklch(0.8 0.19 145);
   --color-up: oklch(0.72 0.18 150);
   --color-down: oklch(0.66 0.2 25);
+
+  /* On a canvas this dark a drop shadow alone is nearly invisible, so depth is
+     carried by the shadow plus a lit hairline along the top edge. */
+  --shadow-raised:
+    0 1px 2px oklch(0 0 0 / 0.4), 0 8px 24px -12px oklch(0 0 0 / 0.65),
+    inset 0 1px 0 oklch(1 0 0 / 0.04);
+
+  /* Decelerating curve for anything that enters or settles; a single easing is
+     what makes unrelated components look like one system in motion. */
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise-in: rise-in 420ms var(--ease-settle) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 body {
   @apply bg-canvas text-ink antialiased;
+}
+
+/* One ring for every control, keyed to :focus-visible so a mouse click does not
+   raise it. Declared once here because a focus style applied per component is
+   the one that gets forgotten on the next control someone adds. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Cards arrive in sequence rather than all at once, which reads as the page
+   assembling itself. Declared against the grid so the skeleton and the real
+   cards inherit the same timing without either knowing about the other. */
+@media (prefers-reduced-motion: no-preference) {
+  .card-stagger > * {
+    animation: var(--animate-rise-in);
+  }
+
+  .card-stagger > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+
+  .card-stagger > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+
+  .card-stagger > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
 }

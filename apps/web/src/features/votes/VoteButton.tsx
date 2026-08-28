@@ -24,7 +24,7 @@ export function VoteButton({ direction, isActive, onPress }: VoteButtonProps) {
       aria-label={DIRECTION_LABEL[direction]}
       aria-pressed={isActive}
       onClick={onPress}
-      className={`flex size-11 shrink-0 items-center justify-center rounded-md border text-xs ${stateClass}`}
+      className={`flex size-11 shrink-0 items-center justify-center rounded-md border text-xs transition duration-150 ease-settle motion-safe:active:scale-90 ${stateClass}`}
     >
       {DIRECTION_GLYPH[direction]}
     </button>

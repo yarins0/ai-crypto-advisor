@@ -18,7 +18,7 @@ const SKELETON_ROW_COUNTS = [5, 3, 4, 1];
  * the real cards cannot be laid out differently, which is the whole point of
  * showing a placeholder. Two columns only from `lg`; a phone stays single file.
  */
-const SECTION_GRID_CLASS = 'grid gap-4 lg:grid-cols-2 lg:items-start';
+const SECTION_GRID_CLASS = 'card-stagger grid gap-4 lg:grid-cols-2 lg:items-start';
 
 export function DashboardPage() {
   const dashboardQuery = useDashboard();

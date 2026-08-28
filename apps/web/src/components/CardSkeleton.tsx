@@ -9,7 +9,7 @@ interface CardSkeletonProps {
  */
 export function CardSkeleton({ rowCount }: CardSkeletonProps) {
   return (
-    <div aria-hidden className="rounded-md border border-line bg-surface-raised p-4">
+    <div aria-hidden className="rounded-xl border border-line bg-surface-raised p-4 shadow-raised">
       <div className="h-3 w-20 rounded-sm bg-line motion-safe:animate-pulse" />
       <div className="mt-4 flex flex-col gap-3">
         {[...Array(rowCount).keys()].map((rowPosition) => (

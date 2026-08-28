@@ -24,7 +24,7 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Create an account"
-      subtitle="Four questions, then your dashboard."
+      subtitle="Two quick questions, then your dashboard."
       footer={
         <>
           Already registered?{' '}
