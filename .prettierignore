@@ -5,3 +5,7 @@ coverage/
 
 # Managed by npm; reformatting it produces churn on every install.
 package-lock.json
+
+# Append-only chronological record. Reflowing it would rewrite every past entry,
+# which the log's own first rule forbids.
+docs/AI_INTERACTION_LOG.md

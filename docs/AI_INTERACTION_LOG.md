@@ -1467,6 +1467,33 @@ rather than hidden; quoted prompts below have had only obvious typos corrected.
 
 ---
 
+### Entry 060 — 2026-08-28 — The keep-warm ping is dropped rather than built; the cold start is disclosed instead
+
+- **Prompt:** "what keep-warm ping? how much time to build?", then "remove it from the keep warm
+  from the plan - reviewer would have to tak it. just give me a 1 sentence warning for it".
+- **AI action:** Costed it honestly rather than either building it reflexively or dismissing it:
+  about ten minutes for a ~15-line scheduled workflow, but with two caveats that decide the
+  question. GitHub's scheduled workflows are queued against shared runner capacity and run late
+  often enough that a 10-minute cron cannot be relied on to beat a 15-minute idle timeout, so it
+  reduces cold starts rather than removing them; and keeping the service awake continuously
+  would consume roughly 730 of Render's 750 free instance-hours a month, which fits one service
+  with almost no headroom. The developer chose to drop it. `PLAN.md` §8's mitigation cell no
+  longer promises the ping, a dated note below the table records why, and the README's
+  cold-start warning was condensed to the single sentence asked for.
+- **Outcome:** Committed, but not by this session. Another session ran a broad `git add` and its
+  commit `dd6f56a` — "Track the AI interaction log and add the one-page interaction summary" —
+  swept in the finished-but-unstaged `README.md` and `docs/PLAN.md` edits, so the content is
+  correct and complete under a message that does not mention it. Not amended: the commit belongs
+  to a session that may still be working, and rewriting another session's tip is a worse failure
+  than an under-descriptive message. A first attempt at the §8 edit also inserted the note into
+  the middle of the risk table, orphaning its last two rows as broken markdown; caught by
+  rendering the section back rather than trusting the anchor string, and moved below the table.
+- **Decision owner:** human (drop the ping, accept the cold start); AI (autonomous) for costing
+  it against GitHub's cron reliability and Render's free-hour budget rather than answering only
+  the build-time question that was asked.
+
+---
+
 ## Maintaining this log
 
 This log is a personal working draft (see Entry 014) — it stays untracked and is
