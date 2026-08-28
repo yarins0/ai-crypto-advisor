@@ -19,7 +19,13 @@
  * MONGODB_URI, cleanup is skipped and the manual command is printed instead.
  */
 
+import { setTimeout as sleep } from 'node:timers/promises';
+
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4000';
+// Mirrors REFRESH_REUSE_GRACE_MS in apps/api/src/modules/auth/service.ts. The API
+// forgives a replay inside that interval as a lost rotation race, so a replay sent
+// immediately exercises the grace path rather than theft detection.
+const REFRESH_REUSE_GRACE_MS = 3000;
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const PASSWORD = 'Sup3rSecret!';
 
@@ -187,6 +193,7 @@ async function main() {
   check('refresh issues a different refresh token', rotatedCookie?.pair !== registerCookie?.pair);
 
   // --- replay detection ---------------------------------------------------
+  await sleep(REFRESH_REUSE_GRACE_MS + 500);
   const replay = await call('/api/auth/refresh', { method: 'POST', cookie: registerCookie?.pair });
   check('replaying the consumed token returns 401', replay.status === 401);
 
