@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { Sparkline, getSparklineColorClass } from '../components/Sparkline.js';
 
+// Deliberately under vitest's 5s testTimeout: the two ceilings race, and the
+// test's own timeout preempts the wait, discarding the assertion error that is
+// the only output naming why no chart arrived.
+const CHART_WAIT_MS = 3000;
+
 // Matches the shape of a committed fallback series, the shortest the API returns.
 const FALLBACK_SERIES = [80_100, 79_600, 79_900, 78_800, 79_200, 78_400, 78_000];
 
@@ -39,13 +44,14 @@ describe('Sparkline', () => {
     await import('../components/SparklineChart.js');
     const container = renderSparkline(FALLBACK_SERIES);
 
-    // The 1s default is wall-clock, and parallel workers under the full-suite
-    // run can deschedule this one for longer than that.
+    // A failure here has been seen to burn the whole budget, so it is a hang
+    // rather than a delay. Asserting on the markup makes it name its own cause:
+    // a container held at zero width, or a chunk that never resolved.
     await waitFor(
       () => {
-        expect(chartIn(container)).not.toBeNull();
+        expect(container.innerHTML).toContain('<svg');
       },
-      { timeout: 5000 },
+      { timeout: CHART_WAIT_MS },
     );
   });
 
