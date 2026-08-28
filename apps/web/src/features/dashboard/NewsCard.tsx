@@ -15,14 +15,13 @@ export function NewsCard({ section, preferenceVersion }: NewsCardProps) {
       {section.data.length === 0 ? (
         <p className="text-sm text-ink-faint">No headlines for your topics right now.</p>
       ) : (
-        // Bounded because the feed is the only section whose length is unbounded,
-        // and a card taller than half the grid defeats the column balancer.
-        // overscroll-contain stops the page scrolling once the list bottoms out.
-        // pr-2 keeps the rows clear of the thumb; -mr-2 pulls the ul's own box
-        // (and with it, the scrollbar the browser draws at that edge) out past
-        // the card's padding, since padding-right alone only insets the
-        // content and never relocates the scrollbar itself.
-        <ul className="scroll-slim -mr-2 max-h-[28rem] divide-y divide-line overflow-y-auto overscroll-contain pr-2">
+        // Bounded only from lg, where the columns exist and a card taller than
+        // half the grid strands the ones after it. A single-column phone has no
+        // balancer to serve, and overscroll-contain there would swallow the
+        // touch gesture that scrolls the page.
+        // -mr-2 with pr-2 relocates the scrollbar past the card's padding;
+        // padding alone insets the content but never moves the scrollbar.
+        <ul className="scroll-slim -mr-2 divide-y divide-line pr-2 lg:max-h-[28rem] lg:overflow-y-auto lg:overscroll-contain">
           {section.data.map((item) => (
             <li key={item.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1">
