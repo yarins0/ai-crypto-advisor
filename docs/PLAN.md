@@ -1,7 +1,8 @@
 # AI Crypto Advisor — Implementation Plan
 
-Status: **ratified and in progress.** M0–M5 implemented; M6 onward outstanding.
-Last updated: 2026-08-27
+Status: **ratified and in progress.** M0–M7 implemented; M7 deployed and verified live.
+M8 (docs) in progress — README and [`ARCHITECTURE.md`](ARCHITECTURE.md) done.
+Last updated: 2026-08-28
 
 ---
 
@@ -76,14 +77,21 @@ npm workspaces monorepo, so the client and server share DTO types and can't drif
 │   └── api/                 # Express + TypeScript      → Render
 │       └── src/
 │           ├── modules/     # auth · preferences · dashboard · votes
-│           │   └── <mod>/   # route.ts · service.ts · model.ts · schema.ts
+│           │   └── <mod>/   # route.ts · service.ts · *.model.ts when it owns state
 │           ├── integrations/# coingecko · cointelegraph · huggingface · memes
-│           ├── lib/         # cache, http client, logger, errors
+│           ├── lib/         # cache, http client, db connection, errors
 │           └── middleware/  # auth guard, validation, error handler
 ├── packages/shared/         # Zod schemas + inferred TS types, used by both apps
 ├── docs/                    # this plan, architecture, AI logs, training write-up
 └── .github/workflows/ci.yml
 ```
+
+**Corrected 2026-08-28.** The tree above previously showed a `schema.ts` in every module and a
+`logger` in `lib/`. Neither exists: request and response schemas live in `packages/shared` so
+both apps share one definition, and `lib/` holds the database connection instead. The module
+shape also varies with what a module owns — `auth/` carries two schemas, since a session is a
+separate revocable object from the account, and `dashboard/` carries none, since it composes
+other modules' data and holds no state of its own.
 
 **Trade-off, ratified in M1:** the workspace is kept, and `packages/shared` gains a real
 build step.
@@ -198,8 +206,14 @@ GET    /api/votes/summary        → aggregate counts, powers the analytics view
 GET    /api/health
 ```
 
-`GET /api/dashboard` composes all four sections server-side in parallel. One round trip, and
-the client never learns which third-party APIs exist.
+`GET /api/dashboard` composes every selected section server-side. One round trip, and the
+client never learns which third-party APIs exist.
+
+**Corrected 2026-08-28.** This previously read "all four sections in parallel". The
+composition is not a uniform fan-out: `buildDashboard` awaits the coin-markets fetch first,
+because that single response feeds both the price cards and the insight prompt, and only then
+composes news and the insight with `Promise.all`. Fanning all four out together would fetch
+markets twice. The step order is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 The section names are the `Preference.contentTypes` values, not a parallel vocabulary. One
 list means a preference, a response key and a vote's `section` cannot disagree about what a
