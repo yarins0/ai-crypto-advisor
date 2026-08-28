@@ -7,7 +7,7 @@ import { Button } from '../../components/Button.js';
 import { FormBanner } from '../../components/FormBanner.js';
 import { QuestionStep } from '../../components/questions/QuestionStep.js';
 import { getFormMessage } from '../../lib/api/form-errors.js';
-import { isAnswerComplete, toPreferencesRequest } from './answers.js';
+import { isAnswerComplete, selectAskableQuestions, toPreferencesRequest } from './answers.js';
 import type { AnswerMap } from './answers.js';
 import { useSavePreferences } from './use-preferences.js';
 
@@ -23,12 +23,18 @@ interface PreferencesFormProps {
  *
  * Taking the loaded answers as a prop lets useState seed from them directly,
  * which avoids syncing server data into local state with an effect.
+ *
+ * The visible set follows the answers as they change, so turning the AI insight
+ * back on brings its two tuning questions with it in the same render.
  */
 export function PreferencesForm({ questions, initialAnswers }: PreferencesFormProps) {
   const saveMutation = useSavePreferences();
   const [answers, setAnswers] = useState<AnswerMap>(initialAnswers);
 
-  const canSave = questions.every((question) => isAnswerComplete(question, answers[question.id]));
+  const askableQuestions = selectAskableQuestions(questions, answers);
+  const canSave = askableQuestions.every((question) =>
+    isAnswerComplete(question, answers[question.id]),
+  );
   const formMessage = getFormMessage(saveMutation.error);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
@@ -38,7 +44,7 @@ export function PreferencesForm({ questions, initialAnswers }: PreferencesFormPr
 
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-8">
-      {questions.map((question) => (
+      {askableQuestions.map((question) => (
         <QuestionStep
           key={question.id}
           question={question}

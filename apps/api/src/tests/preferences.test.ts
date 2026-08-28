@@ -58,7 +58,7 @@ describe('GET /api/onboarding/questions', () => {
       .set('Authorization', `Bearer ${accessToken}`);
     expect(response.status).toBe(200);
     const ids = (response.body.questions as Array<{ id: string }>).map((question) => question.id);
-    expect(ids).toEqual(['assets', 'investorType', 'contentTypes', 'riskTolerance']);
+    expect(ids).toEqual(['contentTypes', 'assets', 'investorType', 'riskTolerance']);
   });
 });
 

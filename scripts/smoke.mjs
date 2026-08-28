@@ -235,7 +235,7 @@ async function main() {
   check(
     'onboarding has exactly the 4 expected questions in order',
     JSON.stringify(questionIds) ===
-      JSON.stringify(['assets', 'investorType', 'contentTypes', 'riskTolerance']),
+      JSON.stringify(['contentTypes', 'assets', 'investorType', 'riskTolerance']),
     JSON.stringify(questionIds),
   );
 

@@ -43,9 +43,19 @@ function toOptions<TValue extends string>(
   return values.map((value) => ({ value, label: labels[value] }));
 }
 
-/** Built from the same enums preferencesRequestSchema validates against, so the two cannot drift. */
+/**
+ * Built from the same enums preferencesRequestSchema validates against, so the two cannot drift.
+ * Content types leads: it is the only answer that decides whether the remaining
+ * questions are worth asking, and the client skips the tuning pair without it.
+ */
 export function getOnboardingQuestions(): OnboardingQuestion[] {
   return [
+    {
+      id: 'contentTypes',
+      label: 'What do you want on your dashboard?',
+      type: 'multi-select',
+      options: toOptions(contentTypes, CONTENT_TYPE_LABELS),
+    },
     {
       id: 'assets',
       label: 'Which coins do you want to track?',
@@ -59,12 +69,6 @@ export function getOnboardingQuestions(): OnboardingQuestion[] {
       label: 'How would you describe yourself?',
       type: 'single-select',
       options: toOptions(investorTypes, INVESTOR_TYPE_LABELS),
-    },
-    {
-      id: 'contentTypes',
-      label: 'What do you want on your dashboard?',
-      type: 'multi-select',
-      options: toOptions(contentTypes, CONTENT_TYPE_LABELS),
     },
     {
       id: 'riskTolerance',
