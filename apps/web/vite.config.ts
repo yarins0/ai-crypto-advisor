@@ -13,6 +13,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // Vite otherwise walks to the next free port, which silently hides a dev
+    // server left running from an earlier session; failing to bind reports it.
+    strictPort: true,
     // Production serves the SPA and the API from one origin (a Vercel rewrite
     // onto Render), which is what lets the refresh cookie stay first-party and
     // use SameSite=Lax. Proxying in development reproduces that topology, so
