@@ -9,15 +9,24 @@ import { getFieldError, getFormMessage } from '../../lib/api/form-errors.js';
 import { AuthLayout } from './AuthLayout.js';
 import { useRegister } from './use-session.js';
 
+const PASSWORD_MISMATCH_MESSAGE = 'Passwords do not match.';
+
 export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmError, setConfirmError] = useState<string | undefined>(undefined);
   const registerMutation = useRegister();
   const formMessage = getFormMessage(registerMutation.error);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (password !== confirmPassword) {
+      setConfirmError(PASSWORD_MISMATCH_MESSAGE);
+      return;
+    }
+    setConfirmError(undefined);
     registerMutation.mutate({ name, email, password });
   }
 
@@ -62,6 +71,15 @@ export function RegisterPage() {
           autoComplete="new-password"
           error={getFieldError(registerMutation.error, 'password')}
           onChange={setPassword}
+        />
+        <TextField
+          id="confirmPassword"
+          label="Confirm password"
+          type="password"
+          value={confirmPassword}
+          autoComplete="new-password"
+          error={confirmError}
+          onChange={setConfirmPassword}
         />
         <Button type="submit" isPending={registerMutation.isPending}>
           Create account
