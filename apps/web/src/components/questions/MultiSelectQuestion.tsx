@@ -74,10 +74,31 @@ export function MultiSelectQuestion({
                 onChange={() => {
                   handleToggle(option.value);
                 }}
-                className="size-4 shrink-0 accent-accent"
+                // The icon carries the checked state visually when there is one, so
+                // the native box would just be a second, redundant indicator.
+                className={
+                  option.image === undefined ? 'size-4 shrink-0 accent-accent' : 'peer sr-only'
+                }
               />
               {option.image === undefined ? null : (
-                <img src={option.image} alt="" className="size-6 shrink-0 rounded-full" />
+                <span className="relative shrink-0 rounded-full peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
+                  <img src={option.image} alt="" className="size-6 rounded-full" />
+                  {isSelected && (
+                    // Dark scrim under a light check: legible against a logo of any
+                    // color, unlike a fixed light/dark pairing keyed to the theme.
+                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-canvas/70">
+                      <svg viewBox="0 0 24 24" fill="none" className="size-3.5 text-ink">
+                        <path
+                          d="M5 13l4 4L19 7"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                </span>
               )}
               <span>{option.label}</span>
             </label>

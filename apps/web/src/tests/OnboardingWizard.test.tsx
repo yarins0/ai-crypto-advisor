@@ -217,6 +217,12 @@ describe('OnboardingWizard', () => {
     const icons = container.querySelectorAll('img');
     expect(icons).toHaveLength(3);
     expect(icons[0]).toHaveAttribute('src', 'https://example.com/bitcoin.png');
+
+    // The icon is the toggle for an asset option, so its own checkmark overlay
+    // is what shows the selected state — the native box is visually hidden.
+    expect(container.querySelector('svg')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Bitcoin' }));
+    expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
   it('grows back to four steps when the insight section is added', async () => {
