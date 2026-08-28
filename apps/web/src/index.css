@@ -67,6 +67,21 @@ body {
   );
 }
 
+/* The platform's own scrollbar, minus the arrow buttons and the opaque track
+   that cut across a rounded panel. scrollbar-color inherits, so declaring it once
+   here reaches every scroll container; scrollbar-width does not, which is why
+   each scrolling element repeats it. Chosen over ::-webkit-scrollbar because
+   setting either standard property makes Blink ignore those pseudo-elements
+   outright, and only one of the two spellings works in Firefox. */
+:root {
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+:root,
+.scroll-slim {
+  scrollbar-width: thin;
+}
+
 /* One ring for every control, keyed to :focus-visible so a mouse click does not
    raise it. Declared once here because a focus style applied per component is
    the one that gets forgotten on the next control someone adds. */

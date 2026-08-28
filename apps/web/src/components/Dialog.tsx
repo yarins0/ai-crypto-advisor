@@ -56,7 +56,7 @@ export function Dialog({ isOpen, title, children, onClose }: DialogProps) {
           ✕
         </button>
       </header>
-      <div className="max-h-[60vh] overflow-y-auto px-5 py-5">{children}</div>
+      <div className="scroll-slim max-h-[60vh] overflow-y-auto px-5 py-5">{children}</div>
     </dialog>
   );
 }
