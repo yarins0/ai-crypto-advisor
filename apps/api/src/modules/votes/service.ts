@@ -42,6 +42,7 @@ function buildVoteContext(
     assets: preference.assets,
     investorType: preference.investorType,
     contentTypes: preference.contentTypes,
+    riskTolerance: preference.riskTolerance,
     servedAt,
     itemMeta,
   };

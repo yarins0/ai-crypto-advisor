@@ -98,6 +98,7 @@ function buildVoteContext(overrides: Partial<VoteContext> = {}): VoteContext {
     assets: ['bitcoin'],
     investorType: 'hodler',
     contentTypes: ['prices'],
+    riskTolerance: 'medium',
     servedAt: new Date(),
     itemMeta: { title: 'Bitcoin', coinId: 'bitcoin', source: 'live' },
     ...overrides,
@@ -436,6 +437,7 @@ describe('POST /api/votes', () => {
     expect(context.assets).toEqual(['bitcoin']);
     expect(context.investorType).toBe('hodler');
     expect(context.contentTypes).toEqual(['prices']);
+    expect(context.riskTolerance).toBe('medium');
     expect(context.itemMeta.title).toBe('Bitcoin');
     expect(JSON.stringify(context)).not.toContain('forged');
   });

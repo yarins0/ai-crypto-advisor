@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import type { HydratedDocument, Types } from 'mongoose';
 
-import type { AssetId, ContentSource, ContentType, InvestorType } from '@aca/shared';
+import type { AssetId, ContentSource, ContentType, InvestorType, RiskTolerance } from '@aca/shared';
 
 export interface VoteItemMeta {
   title?: string;
@@ -15,6 +15,11 @@ export interface VoteContext {
   assets: AssetId[];
   investorType: InvestorType;
   contentTypes: ContentType[];
+  /**
+   * Recorded although it selects no item: it shapes the insight prompt, so it
+   * is part of the conditions the label was given under.
+   */
+  riskTolerance: RiskTolerance;
   servedAt: Date;
   itemMeta: VoteItemMeta;
 }
@@ -48,6 +53,7 @@ const voteContextSchema = new Schema<VoteContext>(
     assets: { type: [String], required: true },
     investorType: { type: String, required: true },
     contentTypes: { type: [String], required: true },
+    riskTolerance: { type: String, required: true },
     servedAt: { type: Date, required: true },
     itemMeta: { type: voteItemMetaSchema, required: true },
   },
