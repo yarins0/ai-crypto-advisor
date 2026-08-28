@@ -8,6 +8,7 @@
   --color-canvas: oklch(0.17 0.02 260);
   --color-surface: oklch(0.21 0.02 260);
   --color-surface-raised: oklch(0.26 0.02 260);
+  --color-surface-sunk: oklch(0.225 0.02 260);
   --color-line: oklch(0.32 0.02 260);
   --color-line-strong: oklch(0.4 0.02 260);
   --color-ink: oklch(0.96 0.01 260);
@@ -17,11 +18,12 @@
   --color-up: oklch(0.72 0.18 150);
   --color-down: oklch(0.66 0.2 25);
 
-  /* On a canvas this dark a drop shadow alone is nearly invisible, so depth is
-     carried by the shadow plus a lit hairline along the top edge. */
+  /* A black shadow on a near-black canvas has little left to darken, so most of
+     the depth here is the lit top edge, not the shadow under it. The page has one
+     light source above the fold and every raised surface is lit consistently. */
   --shadow-raised:
-    0 1px 2px oklch(0 0 0 / 0.4), 0 8px 24px -12px oklch(0 0 0 / 0.65),
-    inset 0 1px 0 oklch(1 0 0 / 0.04);
+    0 1px 1px oklch(0 0 0 / 0.5), 0 10px 30px -10px oklch(0 0 0 / 0.9),
+    inset 0 1px 0 oklch(1 0 0 / 0.11);
 
   /* Decelerating curve for anything that enters or settles; a single easing is
      what makes unrelated components look like one system in motion. */
@@ -43,6 +45,26 @@
 
 body {
   @apply bg-canvas text-ink antialiased;
+
+  /* The light source the card highlights are lit by. Fixed, so scrolling moves
+     content through the light rather than dragging the light with it. */
+  background-image: radial-gradient(
+    64rem 34rem at 50% -8rem,
+    oklch(0.8 0.19 145 / 0.07),
+    transparent 70%
+  );
+  background-attachment: fixed;
+}
+
+/* Raised surfaces fall off toward the bottom rather than sitting flat. The top
+   stays at surface-raised because ink-faint's AA contrast is measured against
+   it; only the unlit end moves, which widens the margin rather than spending it. */
+.surface-card {
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-surface-raised),
+    var(--color-surface-sunk)
+  );
 }
 
 /* One ring for every control, keyed to :focus-visible so a mouse click does not

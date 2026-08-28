@@ -62,3 +62,15 @@ export function formatPrice(value: number): string {
 export function formatPercentChange(percentagePoints: number): string {
   return percentFormatter.format(percentagePoints / PERCENTAGE_POINTS_PER_UNIT);
 }
+
+/**
+ * Model ids arrive namespaced by their host ('meta-llama/Llama-3.1-8B-Instruct').
+ * The vendor prefix is routing detail, and the reader only needs to know which
+ * model wrote the text they are being asked to trust.
+ */
+export function formatModelName(modelId: string): string {
+  const withoutVendor = modelId.includes('/')
+    ? modelId.slice(modelId.lastIndexOf('/') + 1)
+    : modelId;
+  return withoutVendor.replaceAll('-', ' ');
+}
