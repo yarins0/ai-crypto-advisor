@@ -10,8 +10,8 @@ services:
 
     # Built from the repo root rather than with rootDir: apps/api, because the API
     # resolves @aca/shared through the workspace symlink that only a root install
-    # creates. npm ci also runs the shared package's prepare script, so its dist/
-    # exists before tsc needs its types.
+    # creates. The install also runs the shared package's prepare script, so its
+    # dist/ exists before tsc needs its types.
     #
     # install rather than ci: the lockfile has no entries for esbuild's platform
     # packages, which npm 11 rejects and a Windows machine cannot record. Locked
@@ -45,11 +45,14 @@ services:
       - key: REFRESH_TOKEN_PEPPER
         generateValue: true
 
-      # Entered in the dashboard. The Atlas password must not enter git, and the
-      # Vercel URL is not known until that project exists.
-      - key: MONGODB_URI
-        sync: false
+      # Public, so it belongs in the blueprint rather than the dashboard: a deploy
+      # reproducible from the repo beats one resting on a field somebody typed. No
+      # trailing slash, since cors() compares this to the Origin header verbatim.
       - key: WEB_ORIGIN
+        value: https://ai-crypto-advisor-yarins0.vercel.app
+
+      # Entered in the dashboard because neither may enter git.
+      - key: MONGODB_URI
         sync: false
       - key: HF_TOKEN
         sync: false
