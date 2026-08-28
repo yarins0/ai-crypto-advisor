@@ -12,7 +12,11 @@ services:
     # resolves @aca/shared through the workspace symlink that only a root install
     # creates. npm ci also runs the shared package's prepare script, so its dist/
     # exists before tsc needs its types.
-    buildCommand: npm ci && npm run build -w apps/api
+    #
+    # --include=dev is load-bearing: NODE_ENV below is set during the build too, and
+    # npm reads it as --omit=dev, which would drop the typescript this compiles with
+    # and fall through to whatever tsc the build image happens to carry.
+    buildCommand: npm ci --include=dev && npm run build -w apps/api
     startCommand: npm start -w apps/api
 
     # Renders' health checks hit this before routing traffic, so a boot that fails
