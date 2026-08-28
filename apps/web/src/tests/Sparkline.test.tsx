@@ -39,9 +39,14 @@ describe('Sparkline', () => {
     await import('../components/SparklineChart.js');
     const container = renderSparkline(FALLBACK_SERIES);
 
-    await waitFor(() => {
-      expect(chartIn(container)).not.toBeNull();
-    });
+    // The 1s default is wall-clock, and parallel workers under the full-suite
+    // run can deschedule this one for longer than that.
+    await waitFor(
+      () => {
+        expect(chartIn(container)).not.toBeNull();
+      },
+      { timeout: 5000 },
+    );
   });
 
   // The length guard runs before the lazy boundary, so a series this short never
