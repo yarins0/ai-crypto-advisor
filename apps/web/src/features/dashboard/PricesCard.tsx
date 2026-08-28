@@ -42,7 +42,7 @@ export function PricesCard({ section, preferenceVersion }: PricesCardProps) {
                   copy would still mount and render a chart for every coin. Below sm
                   the row has no width left for it, so it wraps to a line of its own
                   instead of being withheld from phones entirely. */}
-              <div className="order-last w-full sm:order-none sm:w-16 sm:shrink-0">
+              <div className="order-last w-full sm:order-none sm:w-32 sm:shrink-0">
                 <Sparkline
                   points={coin.sparkline}
                   priceChangePercentage24h={coin.priceChangePercentage24h}

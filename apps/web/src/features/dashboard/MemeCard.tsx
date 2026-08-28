@@ -31,11 +31,14 @@ export function MemeCard({ section, preferenceVersion }: MemeCardProps) {
         </button>
       }
     >
+      {/* 3:2 is the ratio integrations/memes.ts renders every card at. Reserved
+          here because an img with no intrinsic size is zero-height until decode,
+          and the column grid re-balances around it when it resolves. */}
       <img
         src={meme.imageUrl}
         alt={meme.title}
         loading="lazy"
-        className="w-full rounded-md bg-surface"
+        className="aspect-[3/2] w-full rounded-md bg-surface object-contain"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="min-w-0 flex-1 truncate text-sm text-ink-muted">{meme.title}</p>
