@@ -15,23 +15,30 @@ const RELATIVE_UNITS: readonly (readonly [Intl.RelativeTimeFormatUnit, number])[
   ['minute', MINUTE_MS],
 ];
 
+/**
+ * Pinned because the runtime default follows the browser's UI language rather
+ * than `<html lang>`: a Hebrew-locale Chrome rendered prices with a trailing
+ * dollar sign and every timestamp in Hebrew inside an untranslated page.
+ */
+const DISPLAY_LOCALE = 'en-US';
+
 // Formatters are expensive to construct and are rebuilt on every render if
 // created inline, so each is made once at module scope.
-const relativeTimeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const relativeTimeFormatter = new Intl.RelativeTimeFormat(DISPLAY_LOCALE, { numeric: 'auto' });
 
-const dollarFormatter = new Intl.NumberFormat(undefined, {
+const dollarFormatter = new Intl.NumberFormat(DISPLAY_LOCALE, {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 2,
 });
 
-const subDollarFormatter = new Intl.NumberFormat(undefined, {
+const subDollarFormatter = new Intl.NumberFormat(DISPLAY_LOCALE, {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 6,
 });
 
-const percentFormatter = new Intl.NumberFormat(undefined, {
+const percentFormatter = new Intl.NumberFormat(DISPLAY_LOCALE, {
   style: 'percent',
   maximumFractionDigits: 2,
   signDisplay: 'exceptZero',
