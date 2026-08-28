@@ -34,6 +34,9 @@ describe('getSparklineColorClass', () => {
 describe('Sparkline', () => {
   // The chart arrives on its own chunk, so the series is drawn a tick after mount.
   it('draws the seven-point series the fallbacks return', async () => {
+    // Warmed first so the assertion races only React's re-render, not Vite
+    // transforming recharts and its d3 tree on demand.
+    await import('./SparklineChart.js');
     const container = renderSparkline(FALLBACK_SERIES);
 
     await waitFor(() => {
