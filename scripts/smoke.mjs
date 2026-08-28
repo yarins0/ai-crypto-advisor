@@ -376,6 +376,15 @@ async function main() {
     !Number.isNaN(Date.parse(dashboard.body?.generatedAt ?? '')),
   );
 
+  // Read from the dashboard rather than the PUT /preferences reply so these
+  // checks fail if the dashboard stops serving the version a vote must echo.
+  const preferenceVersion = dashboard.body?.preferenceVersion;
+  check(
+    'dashboard serves a top-level preferenceVersion',
+    typeof preferenceVersion === 'number',
+    JSON.stringify(preferenceVersion),
+  );
+
   // --- meme reroll ------------------------------------------------------
   const firstMeme = await call('/api/dashboard/meme', { accessToken });
   check('GET /dashboard/meme returns 200', firstMeme.status === 200);
@@ -396,15 +405,15 @@ async function main() {
   const upvote = await call('/api/votes', {
     method: 'POST',
     accessToken,
-    body: { section: 'prices', itemId: voteItemId, value: 1 },
+    body: { section: 'prices', itemId: voteItemId, value: 1, preferenceVersion },
   });
-  check('POST /votes with value 1 returns 200', upvote.status === 200);
+  check('POST /votes with value 1 returns 200', upvote.status === 200, `got ${upvote.status}`);
   check('upvote is recorded with value 1', upvote.body?.vote?.value === 1);
 
   const flippedVote = await call('/api/votes', {
     method: 'POST',
     accessToken,
-    body: { section: 'prices', itemId: voteItemId, value: -1 },
+    body: { section: 'prices', itemId: voteItemId, value: -1, preferenceVersion },
   });
   check('re-voting the same item returns 200', flippedVote.status === 200);
   check(
@@ -425,7 +434,7 @@ async function main() {
   const clearedVote = await call('/api/votes', {
     method: 'POST',
     accessToken,
-    body: { section: 'prices', itemId: voteItemId, value: 0 },
+    body: { section: 'prices', itemId: voteItemId, value: 0, preferenceVersion },
   });
   check('clearing a vote (value 0) returns 200', clearedVote.status === 200);
   check('clearing a vote returns a null vote', clearedVote.body?.vote === null);
@@ -443,9 +452,13 @@ async function main() {
   const bogusItemVote = await call('/api/votes', {
     method: 'POST',
     accessToken,
-    body: { section: 'prices', itemId: 'not-a-real-coin-id', value: 1 },
+    body: { section: 'prices', itemId: 'not-a-real-coin-id', value: 1, preferenceVersion },
   });
-  check('voting on an unresolvable item returns 404', bogusItemVote.status === 404);
+  check(
+    'voting on an unresolvable item returns 404',
+    bogusItemVote.status === 404,
+    `got ${bogusItemVote.status}`,
+  );
 
   const invalidValueVote = await call('/api/votes', {
     method: 'POST',
