@@ -34,9 +34,9 @@ const QUESTIONS: OnboardingQuestion[] = [
     label: 'Which assets do you follow?',
     type: 'multi-select',
     options: [
-      { value: 'bitcoin', label: 'Bitcoin' },
-      { value: 'ethereum', label: 'Ethereum' },
-      { value: 'solana', label: 'Solana' },
+      { value: 'bitcoin', label: 'Bitcoin', image: 'https://example.com/bitcoin.png' },
+      { value: 'ethereum', label: 'Ethereum', image: 'https://example.com/ethereum.png' },
+      { value: 'solana', label: 'Solana', image: 'https://example.com/solana.png' },
     ],
     min: 1,
     max: 2,
@@ -197,6 +197,26 @@ describe('OnboardingWizard', () => {
       investorType: 'hodler',
       riskTolerance: 'medium',
     });
+  });
+
+  it('shows a coin icon on the assets question but not on contentTypes', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <OnboardingWizard questions={QUESTIONS} />
+      </QueryClientProvider>,
+    );
+
+    // alt="" on every icon: it is decorative, the coin name is already the
+    // checkbox label, so role="img" queries do not apply here.
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Prices' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const icons = container.querySelectorAll('img');
+    expect(icons).toHaveLength(3);
+    expect(icons[0]).toHaveAttribute('src', 'https://example.com/bitcoin.png');
   });
 
   it('grows back to four steps when the insight section is added', async () => {

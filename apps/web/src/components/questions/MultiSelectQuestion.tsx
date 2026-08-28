@@ -76,6 +76,9 @@ export function MultiSelectQuestion({
                 }}
                 className="size-4 shrink-0 accent-accent"
               />
+              {option.image === undefined ? null : (
+                <img src={option.image} alt="" className="size-6 shrink-0 rounded-full" />
+              )}
               <span>{option.label}</span>
             </label>
           );

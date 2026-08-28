@@ -37,6 +37,8 @@ const onboardingQuestionTypes = ['single-select', 'multi-select'] as const;
 export const onboardingQuestionOptionSchema = z.object({
   value: z.string(),
   label: z.string(),
+  /** Set only for the assets question; every other option renders text-only. */
+  image: z.string().optional(),
 });
 
 export const onboardingQuestionSchema = z.object({
