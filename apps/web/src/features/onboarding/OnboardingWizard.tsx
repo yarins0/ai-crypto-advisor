@@ -66,7 +66,10 @@ export function OnboardingWizard({ questions }: OnboardingWizardProps) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-8 sm:px-6">
       <header>
-        <p className="text-sm text-ink-faint">
+        {/* role="status" so the step change is announced: clicking Continue or
+            Back re-renders this text in place, which a screen reader would
+            otherwise never notice since focus stays on the button below. */}
+        <p role="status" className="text-sm text-ink-faint">
           Step {safeStepIndex + 1} of {askableQuestions.length}
         </p>
         <div className="mt-2 h-1 rounded-full bg-line">
