@@ -1,15 +1,24 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthResponse } from '@aca/shared';
 
 import { AppRoutes } from '../app/routes.js';
+import { login, logout } from '../features/auth/api.js';
 import { SESSION_QUERY_KEY } from '../features/auth/use-session.js';
 import { fetchDashboard } from '../features/dashboard/api.js';
 import { ApiError } from '../lib/api/client.js';
 import { createQueryClient } from '../lib/query-client.js';
+
+vi.mock('../features/auth/api.js', () => ({
+  login: vi.fn(),
+  register: vi.fn(),
+  logout: vi.fn(),
+  loadSession: vi.fn(),
+}));
 
 // Held pending rather than resolved: these tests assert where the router landed,
 // and a real request would only add retries and noise to that question.
@@ -122,5 +131,34 @@ describe('AppRoutes', () => {
     renderAt('/not-a-page', ONBOARDED_SESSION);
 
     expect(currentPathname()).toBe('/');
+  });
+
+  // The guards navigate purely by re-rendering on the session query, so a write
+  // the mounted observer never hears about leaves the user on the old screen
+  // until a reload rebuilds the tree.
+  it('lands on the dashboard as soon as a sign-in succeeds', async () => {
+    vi.mocked(login).mockResolvedValue(ONBOARDED_SESSION);
+    renderAt('/login', null);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Email'), 'ada@example.com');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await waitFor(() => {
+      expect(currentPathname()).toBe('/');
+    });
+  });
+
+  it('lands on the sign-in screen as soon as a sign-out succeeds', async () => {
+    vi.mocked(logout).mockResolvedValue(undefined);
+    renderAt('/', ONBOARDED_SESSION);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    await waitFor(() => {
+      expect(currentPathname()).toBe('/login');
+    });
   });
 });

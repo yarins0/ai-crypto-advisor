@@ -25,12 +25,17 @@ export function useSession(): UseQueryResult<AuthResponse | null> {
 
 /**
  * No query key carries a user id, so the entries a previous session left are
- * dropped before the new one is seeded, the same way signing out drops them.
+ * dropped before the next one is seeded, on the way in and on the way out.
  */
-function startSession(queryClient: QueryClient, session: AuthResponse): void {
-  queryClient.clear();
-  // Seeded rather than invalidated: the response already is the session, so
-  // refetching it would rotate a brand-new refresh token for no new data.
+function replaceSession(queryClient: QueryClient, session: AuthResponse | null): void {
+  // The session entry is spared rather than cleared: destroying the instance the
+  // route guards observe leaves its replacement unobserved, so neither a sign-in
+  // nor a sign-out would redirect until a reload rebuilt the tree.
+  queryClient.removeQueries({
+    predicate: (query) => query.queryKey[0] !== SESSION_QUERY_KEY[0],
+  });
+  // Seeded rather than invalidated: a sign-in response already is the session,
+  // so refetching it would rotate a brand-new refresh token for no new data.
   queryClient.setQueryData(SESSION_QUERY_KEY, session);
 }
 
@@ -39,7 +44,7 @@ export function useLogin(): UseMutationResult<AuthResponse, Error, LoginRequest>
   return useMutation({
     mutationFn: login,
     onSuccess: (session) => {
-      startSession(queryClient, session);
+      replaceSession(queryClient, session);
     },
   });
 }
@@ -49,7 +54,7 @@ export function useRegister(): UseMutationResult<AuthResponse, Error, RegisterRe
   return useMutation({
     mutationFn: register,
     onSuccess: (session) => {
-      startSession(queryClient, session);
+      replaceSession(queryClient, session);
     },
   });
 }
@@ -59,10 +64,7 @@ export function useLogout(): UseMutationResult<void, Error, void> {
   return useMutation({
     mutationFn: logout,
     onSettled: () => {
-      // Every cached entry belongs to the account that just left, so it is
-      // dropped before the next sign-in can render another user's dashboard.
-      queryClient.clear();
-      queryClient.setQueryData(SESSION_QUERY_KEY, null);
+      replaceSession(queryClient, null);
     },
   });
 }
