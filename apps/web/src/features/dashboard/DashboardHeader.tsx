@@ -11,8 +11,12 @@ export function DashboardHeader() {
     // so the name never competes with the actions for the same line.
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="text-sm text-ink-faint">AI Crypto Advisor</p>
-        <p className="truncate text-lg font-semibold text-ink">{session?.user.name}</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+          AI Crypto Advisor
+        </p>
+        <p className="mt-1 truncate text-lg font-semibold tracking-tight text-ink">
+          {session?.user.name}
+        </p>
       </div>
       <nav className="flex shrink-0 items-center gap-2">
         <Link

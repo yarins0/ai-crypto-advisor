@@ -19,7 +19,7 @@ export function InsightCard({ section, preferenceVersion }: InsightCardProps) {
 
   return (
     <Card title="Insight of the day" source={section.source} fetchedAt={section.fetchedAt}>
-      <p className="text-sm leading-relaxed text-ink">{section.data.text}</p>
+      <p className="text-base leading-relaxed text-ink">{section.data.text}</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-xs text-ink-faint">{attribution}</p>
         <VoteButtons

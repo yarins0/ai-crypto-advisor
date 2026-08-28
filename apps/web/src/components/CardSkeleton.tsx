@@ -13,7 +13,7 @@ export function CardSkeleton({ rowCount }: CardSkeletonProps) {
       aria-hidden
       className="rounded-xl border border-line surface-card bg-surface-raised p-4 shadow-raised"
     >
-      <div className="h-3 w-20 rounded-sm bg-line motion-safe:animate-pulse" />
+      <div className="h-4 w-24 rounded-sm bg-line motion-safe:animate-pulse" />
       <div className="mt-4 flex flex-col gap-3">
         {[...Array(rowCount).keys()].map((rowPosition) => (
           <div key={rowPosition} className="h-8 rounded-sm bg-line motion-safe:animate-pulse" />
