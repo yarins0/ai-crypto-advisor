@@ -107,6 +107,16 @@ body {
   .card-columns {
     columns: 2;
   }
+
+  /* A lone card skips the column split (one child would take column-width but
+     still leave dead space beside it) yet keeps that same width, rather than
+     stretching to the full row now that nothing constrains it. Matches
+     .card-columns's math: one column of two, less half the 1rem gap. Centred
+     rather than left-aligned since there is no second column to sit beside. */
+  .card-single {
+    max-width: calc(50% - 0.5rem);
+    margin-inline: auto;
+  }
 }
 
 /* Cards arrive in sequence rather than all at once, which reads as the page

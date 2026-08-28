@@ -10,8 +10,15 @@ import { useDashboard } from './use-dashboard.js';
  * The layout lives here rather than in DashboardSections so the placeholder and
  * the real cards cannot be laid out differently, which is the whole point of
  * showing a placeholder. Two columns only from `lg`; a phone stays single file.
+ *
+ * A lone card skips `card-columns`: CSS multi-column sizes a single child to
+ * one column's width but still leaves dead space beside it, since nothing
+ * flows in to fill the second column. `card-single` keeps that same width
+ * without the split, so a page that had one card before still looks like it.
  */
-const SECTION_LAYOUT_CLASS = 'card-stagger card-columns';
+function getSectionLayoutClass(sectionCount: number | undefined): string {
+  return sectionCount === 1 ? 'card-stagger card-single' : 'card-stagger card-columns';
+}
 
 export function DashboardPage() {
   const dashboardQuery = useDashboard();
@@ -34,7 +41,12 @@ export function DashboardPage() {
         ) : null}
 
         {dashboardQuery.isPending ? (
-          <div aria-busy className={SECTION_LAYOUT_CLASS}>
+          <div
+            aria-busy
+            className={getSectionLayoutClass(
+              preferencesQuery.data?.preferences?.contentTypes.length,
+            )}
+          >
             <DashboardSkeleton
               selectedSections={preferencesQuery.data?.preferences?.contentTypes}
             />
@@ -42,7 +54,12 @@ export function DashboardPage() {
         ) : null}
 
         {dashboardQuery.data === undefined ? null : (
-          <div className={SECTION_LAYOUT_CLASS}>
+          <div
+            className={getSectionLayoutClass(
+              Object.values(dashboardQuery.data.sections).filter((section) => section !== null)
+                .length,
+            )}
+          >
             <DashboardSections dashboard={dashboardQuery.data} />
           </div>
         )}
