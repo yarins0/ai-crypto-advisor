@@ -33,7 +33,11 @@ export function useSavePreferences(): UseMutationResult<
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: PREFERENCES_QUERY_KEY }),
-        queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY }),
+        // refetchType 'all': the dashboard is unmounted while this screen is
+        // open, so the default 'active' scope would leave it merely marked
+        // stale and only start refetching once the user navigates back — this
+        // starts the (upstream-fanned-out, so slow) refetch now instead.
+        queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY, refetchType: 'all' }),
       ]);
     },
   });
