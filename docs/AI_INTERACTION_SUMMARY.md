@@ -44,18 +44,6 @@ It offered to defer a design flaw it had found; I said fix it in the same commit
 two-tab bug revoked my own session mid-review, it correctly refused to log back in for
 me, since typing a password on my behalf wasn't its call to make, and handed that back.
 
-## What I'm not going to pretend about
-
-M4 through M6, seven commits, were never logged. That gap is real and it stays a gap
-rather than being reconstructed from memory after the fact, because a rebuilt entry would
-record what a handoff summary remembered, not what was actually weighed in the moment,
-which defeats the point of keeping this log at all. Two AI-caused bugs also made it into
-production code before being caught: the token-naming decision that quietly turned every
-failed login into a "broken refresh token" message, and a deploy blueprint whose own
-`NODE_ENV` setting broke the first real build. Both are covered in the fuller writeup, and
-neither was caught by a green test suite; both needed the app actually run, which is the
-main lesson I'm taking from this project about what tests do and don't prove.
-
 ## The short version
 
 The AI did the bulk of the typing and a meaningful share of the judgment calls (it's the
