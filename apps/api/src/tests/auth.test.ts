@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
+import { RefreshTokenModel } from '../modules/auth/refresh-token.model.js';
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
 const VALID_PASSWORD = 'Sup3rSecret!';
@@ -53,8 +54,28 @@ function isRefreshCookieCleared(response: request.Response): boolean {
 
 interface RegisteredUser {
   response: request.Response;
+  userId: string;
   accessToken: string;
   refreshCookie: string;
+}
+
+/**
+ * Backdates every revocation this user owns, so a replay lands outside the
+ * reuse interval. Reaching into the collection keeps the production interval
+ * under test; sleeping for its real duration would only add a slow test that
+ * a loaded CI runner could still lose.
+ */
+async function expireReuseGrace(userId: string): Promise<void> {
+  await RefreshTokenModel.updateMany(
+    { userId, revokedAt: { $ne: null } },
+    { revokedAt: new Date(Date.now() - 60_000) },
+  );
+}
+
+/** Reads the single revoked token a user holds after exactly one rotation. */
+async function readRevokedAt(userId: string): Promise<Date | null> {
+  const revokedToken = await RefreshTokenModel.findOne({ userId, revokedAt: { $ne: null } });
+  return revokedToken?.revokedAt ?? null;
 }
 
 // Registration is the setup step for nearly every other test, so it is
@@ -76,7 +97,7 @@ async function registerUser(
   }
 
   const body = response.body as AuthSuccessBody;
-  return { response, accessToken: body.accessToken, refreshCookie };
+  return { response, userId: body.user.id, accessToken: body.accessToken, refreshCookie };
 }
 
 describe('POST /api/auth/register', () => {
@@ -228,14 +249,47 @@ describe('POST /api/auth/refresh', () => {
     expect(newRefreshCookie).not.toBe(refreshCookie);
   });
 
-  it('rejects reuse of an already-rotated refresh token', async () => {
-    const { refreshCookie } = await registerUser();
+  it('rejects reuse of a refresh token once its reuse interval has passed', async () => {
+    const { userId, refreshCookie } = await registerUser();
 
     await request(app).post('/api/auth/refresh').set('Cookie', refreshCookie);
+    await expireReuseGrace(userId);
     const reused = await request(app).post('/api/auth/refresh').set('Cookie', refreshCookie);
 
     expect(reused.status).toBe(401);
     expect((reused.body as ErrorBody).error).toBe('Invalid refresh token');
+  });
+
+  // Two tabs restored together boot on the same cookie and both refresh. The
+  // loser replays a token the winner has just rotated away, which without an
+  // interval revoked the winner's brand-new token and ended the real session.
+  it('accepts a replay inside the reuse interval and leaves the family intact', async () => {
+    const { refreshCookie: tokenA } = await registerUser();
+
+    const firstRefresh = await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
+    const tokenB = extractRefreshCookiePair(firstRefresh);
+    if (!tokenB) throw new Error('refresh did not set a new refresh_token cookie');
+
+    const replayOfA = await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
+    expect(replayOfA.status).toBe(200);
+
+    const attemptWithB = await request(app).post('/api/auth/refresh').set('Cookie', tokenB);
+    expect(attemptWithB.status).toBe(200);
+  });
+
+  // Asserts on stored state because no sequence of requests can separate an
+  // anchored interval from a re-stamped one inside its own few seconds, and a
+  // re-stamped one would keep a stolen token valid for as long as it is replayed.
+  it('anchors the reuse interval to the first revocation, so a replay cannot extend it', async () => {
+    const { userId, refreshCookie: tokenA } = await registerUser();
+    await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
+
+    const revokedAtBefore = await readRevokedAt(userId);
+    expect(revokedAtBefore).not.toBeNull();
+
+    const replayOfA = await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
+    expect(replayOfA.status).toBe(200);
+    expect(await readRevokedAt(userId)).toEqual(revokedAtBefore);
   });
 
   it('rejects a refresh request with no cookie', async () => {
@@ -247,12 +301,13 @@ describe('POST /api/auth/refresh', () => {
   // that has already been rotated away must revoke every later token in its
   // family too, not just the replayed one.
   it('cannot outlive detection: replaying a rotated-away token invalidates its whole family', async () => {
-    const { refreshCookie: tokenA } = await registerUser();
+    const { userId, refreshCookie: tokenA } = await registerUser();
 
     const firstRefresh = await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
     const tokenB = extractRefreshCookiePair(firstRefresh);
     if (!tokenB) throw new Error('refresh did not set a new refresh_token cookie');
 
+    await expireReuseGrace(userId);
     const replayOfA = await request(app).post('/api/auth/refresh').set('Cookie', tokenA);
     expect(replayOfA.status).toBe(401);
 

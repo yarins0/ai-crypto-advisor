@@ -98,9 +98,8 @@ async function readResponse<TData>(
 
 /**
  * Shared by every concurrent caller so the refresh endpoint is hit exactly once.
- * The API revokes a user's whole token family when a rotated-away refresh token
- * is replayed, so two parallel refreshes would not merely race — they would log
- * the user out of every session.
+ * The API's reuse interval keeps a parallel refresh from revoking the session,
+ * but the loser still burns a rotation and strands a token nothing holds.
  */
 let refreshInFlight: Promise<AuthResponse> | null = null;
 

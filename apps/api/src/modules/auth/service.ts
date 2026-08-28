@@ -9,6 +9,7 @@ import type { LoginRequest, PublicUser, RegisterRequest } from '@aca/shared';
 import { env } from '../../env.js';
 import { HttpError } from '../../lib/errors.js';
 import { RefreshTokenModel } from './refresh-token.model.js';
+import type { RefreshTokenDocument } from './refresh-token.model.js';
 import { UserModel } from './user.model.js';
 import type { UserDocument } from './user.model.js';
 
@@ -23,6 +24,10 @@ const BCRYPT_ROUNDS = 10;
 const REFRESH_TOKEN_BYTES = 48;
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_DAY = 86_400;
+// RFC 9700 §4.14.2 "reuse interval": long enough to absorb a dropped response
+// or a second tab booting on the same cookie, short enough that a thief racing
+// the owner gains seconds rather than a session.
+const REFRESH_REUSE_GRACE_MS = 3 * MS_PER_SECOND;
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password';
 const INVALID_REFRESH_TOKEN_MESSAGE = 'Invalid refresh token';
 const AUTHENTICATION_REQUIRED_MESSAGE = 'Authentication required';
@@ -109,9 +114,28 @@ export async function loginUser(input: LoginRequest): Promise<AuthSession> {
 }
 
 /**
- * An already-revoked token means the token was replayed, and there is no way
- * to tell the thief from the owner. Revoking the user's whole family logs out
- * both; a forced re-login beats letting a hijacked session continue.
+ * Both conditions are load-bearing. Liveness alone would forgive a replay days
+ * later, while the owner's session is still running; the interval alone would
+ * forgive the tokens a logout or a family revocation has just stamped, since
+ * those are revoked "recently" too.
+ */
+async function isConcurrentRotation(tokenDocument: RefreshTokenDocument): Promise<boolean> {
+  const { revokedAt } = tokenDocument;
+  if (!revokedAt || Date.now() - revokedAt.getTime() > REFRESH_REUSE_GRACE_MS) {
+    return false;
+  }
+  const successor = await RefreshTokenModel.exists({
+    userId: tokenDocument.userId,
+    revokedAt: null,
+  });
+  return successor !== null;
+}
+
+/**
+ * Replaying an already-revoked token is read as theft, and revoking the user's
+ * whole family logs out thief and owner alike. The exception is a lost rotation
+ * race — two tabs booting on one cookie — which is far likelier than an attacker
+ * striking in the same few seconds and leaves a live successor behind to prove it.
  */
 export async function rotateRefreshToken(rawToken: string): Promise<AuthSession> {
   const tokenHash = hashRefreshToken(rawToken);
@@ -120,7 +144,8 @@ export async function rotateRefreshToken(rawToken: string): Promise<AuthSession>
   if (!tokenDocument) {
     throw new HttpError(401, INVALID_REFRESH_TOKEN_MESSAGE);
   }
-  if (tokenDocument.revokedAt) {
+  const isReplay = tokenDocument.revokedAt !== null;
+  if (isReplay && !(await isConcurrentRotation(tokenDocument))) {
     await RefreshTokenModel.updateMany(
       { userId: tokenDocument.userId, revokedAt: null },
       { revokedAt: new Date() },
@@ -131,8 +156,12 @@ export async function rotateRefreshToken(rawToken: string): Promise<AuthSession>
     throw new HttpError(401, INVALID_REFRESH_TOKEN_MESSAGE);
   }
 
-  tokenDocument.revokedAt = new Date();
-  await tokenDocument.save();
+  // Anchored to the first revocation and never re-stamped: sliding the window
+  // forward on each replay would keep a stolen token valid indefinitely.
+  if (!tokenDocument.revokedAt) {
+    tokenDocument.revokedAt = new Date();
+    await tokenDocument.save();
+  }
 
   const user = await UserModel.findById(tokenDocument.userId);
   if (!user) {
