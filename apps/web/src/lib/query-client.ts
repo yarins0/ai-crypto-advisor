@@ -1,8 +1,10 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
+import { SESSION_QUERY_KEY } from '../features/auth/use-session.js';
 import { ApiError } from './api/client.js';
 
 const MAX_RETRIES = 2;
+const UNAUTHORIZED_STATUS = 401;
 const SERVER_ERROR_STATUS = 500;
 
 /**
@@ -22,7 +24,21 @@ function shouldRetry(failureCount: number, error: Error): boolean {
  * isolated cache instead of inheriting entries from the test before it.
  */
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  /**
+   * A 401 reaching here has already been through the api client's refresh and
+   * retry, so the session is unrecoverable. Dropping it hands the route guards
+   * a signed-out state to redirect on; leaving it cached strands the user on a
+   * dead screen displaying the API's own error text.
+   */
+  const endSessionOnUnauthorized = (error: Error): void => {
+    if (error instanceof ApiError && error.status === UNAUTHORIZED_STATUS) {
+      queryClient.setQueryData(SESSION_QUERY_KEY, null);
+    }
+  };
+
+  const queryClient = new QueryClient({
+    queryCache: new QueryCache({ onError: endSessionOnUnauthorized }),
+    mutationCache: new MutationCache({ onError: endSessionOnUnauthorized }),
     defaultOptions: {
       queries: {
         retry: shouldRetry,
@@ -34,4 +50,6 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+
+  return queryClient;
 }

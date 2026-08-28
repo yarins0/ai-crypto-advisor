@@ -1,11 +1,13 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthResponse } from '@aca/shared';
 
 import { SESSION_QUERY_KEY } from '../features/auth/use-session.js';
+import { fetchDashboard } from '../features/dashboard/api.js';
+import { ApiError } from '../lib/api/client.js';
 import { createQueryClient } from '../lib/query-client.js';
 import { AppRoutes } from './routes.js';
 
@@ -101,6 +103,19 @@ describe('AppRoutes', () => {
     renderAt('/login', ONBOARDED_SESSION);
 
     expect(currentPathname()).toBe('/');
+  });
+
+  // The cached session outlives the credentials behind it, so a 401 that the api
+  // client's refresh could not repair must end it rather than leave the user on a
+  // dashboard whose every request now fails.
+  it('signs out when a request fails with 401 the refresh could not repair', async () => {
+    vi.mocked(fetchDashboard).mockRejectedValueOnce(new ApiError(401, 'Invalid refresh token'));
+
+    renderAt('/', ONBOARDED_SESSION);
+
+    await waitFor(() => {
+      expect(currentPathname()).toBe('/login');
+    });
   });
 
   it('sends an unknown path to the dashboard route rather than rendering nothing', () => {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { QueryClient, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 import type { AuthResponse, LoginRequest, RegisterRequest } from '@aca/shared';
 
@@ -23,14 +23,23 @@ export function useSession(): UseQueryResult<AuthResponse | null> {
   });
 }
 
+/**
+ * No query key carries a user id, so the entries a previous session left are
+ * dropped before the new one is seeded, the same way signing out drops them.
+ */
+function startSession(queryClient: QueryClient, session: AuthResponse): void {
+  queryClient.clear();
+  // Seeded rather than invalidated: the response already is the session, so
+  // refetching it would rotate a brand-new refresh token for no new data.
+  queryClient.setQueryData(SESSION_QUERY_KEY, session);
+}
+
 export function useLogin(): UseMutationResult<AuthResponse, Error, LoginRequest> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: login,
     onSuccess: (session) => {
-      // Seeded rather than invalidated: the response already is the session, so
-      // refetching it would rotate a brand-new refresh token for no new data.
-      queryClient.setQueryData(SESSION_QUERY_KEY, session);
+      startSession(queryClient, session);
     },
   });
 }
@@ -40,7 +49,7 @@ export function useRegister(): UseMutationResult<AuthResponse, Error, RegisterRe
   return useMutation({
     mutationFn: register,
     onSuccess: (session) => {
-      queryClient.setQueryData(SESSION_QUERY_KEY, session);
+      startSession(queryClient, session);
     },
   });
 }
