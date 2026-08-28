@@ -11,9 +11,10 @@ import { preferencesRouter } from './modules/preferences/route.js';
 import { votesRouter } from './modules/votes/route.js';
 
 /**
- * Render and Vercel each put exactly one proxy in front of the service. Express
- * must be told, or every request appears to come from the proxy's address and
- * the rate limiter treats all visitors as a single client.
+ * Two proxies sit in front of this — Vercel's rewrite and Render's — but only the
+ * hop Render appends is trusted: the Render URL is publicly reachable, so trusting
+ * Vercel's as well would make req.ip a forgeable X-Forwarded-For on that path.
+ * The cost is a per-edge rather than per-visitor key; route.ts sizes for it.
  */
 const TRUSTED_PROXY_HOPS = 1;
 

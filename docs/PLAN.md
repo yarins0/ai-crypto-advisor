@@ -388,6 +388,34 @@ things follow:
 
 Cost: a `vercel.json` `rewrites` block (M7) and one extra network hop.
 
+### Rate limiting behind two proxies
+
+Resolved 2026-08-28, after being carried unresolved through three sessions.
+
+Two proxies sit in front of the API — Vercel's rewrite and Render's own — so
+`trust proxy` could defensibly be 1 or 2, and the two choices fail in opposite
+directions:
+
+- **`2`** makes `req.ip` the real client address through Vercel, which is correct
+  per-visitor limiting. But `aca-api-tjpw.onrender.com` is publicly reachable, and on
+  that path Render appends the caller's address to whatever `X-Forwarded-For` they
+  sent — so the leftmost entry is attacker-controlled and the limiter is bypassed by
+  rotating one header.
+- **`1`** trusts only the hop Render appends, which no client can forge on either
+  path. The cost is that through Vercel `req.ip` is the edge address, so everyone
+  behind one point of presence shares a bucket.
+
+**`1` is kept, and the limits are sized for the bucket it implies** — register and
+login both raised from 10 to 30. The limiter exists to stop mass account creation,
+not to allocate fairness per person; a coarse key needs a threshold sized for the
+aggregate, and 30 is still orders of magnitude below what a scripted attack wants.
+Choosing `2` would have bought precision that only holds while nobody tries the
+Render URL directly.
+
+This matters more than it did: with the demo account reversed, registering **is** the
+reviewer path, and an exhausted register limiter surfaces as a generic error rather
+than a visible 429.
+
 ### Credential handling
 
 Credentials were initially going to be published in the README. That was reversed: this is

@@ -19,10 +19,13 @@ import {
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_DAY = 86_400;
+// Sized for a bucket shared by everyone behind one Vercel edge, not for one
+// person: app.ts trusts a single proxy hop, which is what keeps req.ip
+// unforgeable. Still far below what mass account creation needs.
 const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * MS_PER_SECOND;
-const LOGIN_RATE_LIMIT_MAX_REQUESTS = 10;
+const LOGIN_RATE_LIMIT_MAX_REQUESTS = 30;
 const REGISTER_RATE_LIMIT_WINDOW_MS = 60 * 60 * MS_PER_SECOND;
-const REGISTER_RATE_LIMIT_MAX_REQUESTS = 10;
+const REGISTER_RATE_LIMIT_MAX_REQUESTS = 30;
 const INVALID_REFRESH_TOKEN_MESSAGE = 'Invalid refresh token';
 
 /**
