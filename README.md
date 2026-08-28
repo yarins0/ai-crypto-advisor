@@ -234,6 +234,7 @@ packages/shared/          Zod schemas and inferred types, imported by both apps
 scripts/                  smoke.mjs · check-integrations.mjs
 docs/ARCHITECTURE.md      how the system works: topology, request path, flows
 docs/PLAN.md              why it works that way: data model, API contract, decisions
+docs/TRAINING_LOOP.md     design: turning votes into a ranker (bonus deliverable)
 render.yaml               API service blueprint
 vercel.json               SPA build and the /api rewrite
 ```

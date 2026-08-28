@@ -418,7 +418,8 @@ whitelisted IP:
 
 ## 10. Bonus deliverable — the training-loop write-up
 
-The brief asks for a _design_, not an implementation. `docs/TRAINING_LOOP.md` will cover:
+The brief asks for a _design_, not an implementation. Written 2026-08-28:
+[`TRAINING_LOOP.md`](TRAINING_LOOP.md). It covers:
 what the `Vote.context` snapshot captures and why; turning vote events into
 `(user_features, item_features, label)` training rows; a cold-start path from onboarding
 answers to a content-based ranker; bandit-style exploration so the model doesn't only ever
@@ -426,3 +427,10 @@ learn from what it already chose to show; offline evaluation (NDCG, AUC on held-
 and online A/B; and the failure modes that make this kind of loop go wrong — position bias
 corrected with inverse propensity weighting, and the fact that you only ever observe labels
 for items you served.
+
+Writing it surfaced two gaps in the collected data, both recorded there in full. `VoteContext`
+copies `assets`, `investorType` and `contentTypes` from the preference document but **not**
+`riskTolerance`, so a field that shapes the insight prompt is absent from the label's own
+snapshot — cheap to add now and unrecoverable later, since existing rows cannot be backfilled.
+And nothing logs what was _served_, only what was voted on, which means propensity weighting is
+described in the write-up but is not computable from what the app stores today.
