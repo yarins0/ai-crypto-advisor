@@ -1,0 +1,3 @@
+# The toolchain writes and expects LF, but a checkout under core.autocrlf=true
+# hands back CRLF, which fails format:check across every file in the repo.
+* text=auto eol=lf
