@@ -51,7 +51,10 @@ export function Dialog({ isOpen, title, children, onClose }: DialogProps) {
       onClose={onClose}
       onClick={handleBackdropClick}
       aria-labelledby={titleId}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-raised backdrop:bg-canvas/70 motion-safe:animate-rise-in"
+      // max-h/overflow-hidden here, not just on the inner div below: dialog:modal
+      // carries its own implicit overflow:auto, so without a cap on the element
+      // itself, tall content scrolls both the dialog and the div underneath it.
+      className="m-auto max-h-[90vh] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line bg-surface p-0 text-ink shadow-raised backdrop:bg-canvas/70 motion-safe:animate-rise-in"
     >
       <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
         <h2 id={titleId} className="text-base font-semibold text-ink">
