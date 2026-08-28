@@ -26,7 +26,7 @@ ten minutes.
 | Styling       | Tailwind CSS                                                    | Fast to build a dense dark UI; design tokens live in one config.                                                                            |
 | Data fetching | TanStack Query                                                  | Caching, retries and optimistic vote updates for free.                                                                                      |
 | Charts        | Recharts                                                        | Sparklines on coin cards. Declarative, no D3 hand-rolling. Not small — 82 kB gzipped, so M6 code-splits it (see below).                     |
-| Backend       | Node 20 + Express 5 + TypeScript                                | One language across the stack; minimal footprint on a free host.                                                                            |
+| Backend       | Node 24 + Express 5 + TypeScript                                | One language across the stack; minimal footprint on a free host.                                                                            |
 | Validation    | Zod                                                             | One schema per DTO, shared with the client via `packages/shared`.                                                                           |
 | DB            | MongoDB Atlas + Mongoose                                        | Chosen by the developer. Free tier persists across redeploys, and the Atlas UI is easy to share with reviewers (a listed deliverable).      |
 | Auth          | JWT access token + rotating refresh token in an httpOnly cookie | Brief allows JWT or session. Short-lived access token in memory, refresh in a cookie — avoids putting a long-lived token in `localStorage`. |
@@ -102,9 +102,9 @@ Two details make the ordering safe:
 - `packages/shared` has a `prepare` script, which npm runs automatically after any install.
   A fresh clone therefore has `dist/` before the first `typecheck`, and CI needs no extra step.
 
-Deploy still needs a root install with a scoped build (`npm ci` at root, then
+Deploy still needs a root install with a scoped build (`npm install` at root, then
 `npm run build -w apps/web`), which is a few lines of config in exchange for a single
-source of truth for API contracts.
+source of truth for API contracts. The install is deliberately not `npm ci`; see §7.
 
 ## 4. Data model
 
@@ -281,17 +281,17 @@ fetch times, so the staleness badge can never overstate freshness.
 
 ## 7. Delivery milestones
 
-| #   | Milestone         | Contents                                                                                                       |
-| --- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| M0  | Scaffold          | Workspaces, TS configs, ESLint/Prettier, CI skeleton, `.env.example`                                           |
-| M1  | Auth              | Mongo connection, User model, register/login/refresh/logout, guard middleware, tests                           |
-| M2  | Preferences       | Question definitions, preferences CRUD, onboarding gate                                                        |
-| M3  | Integrations      | Cache helper, four integration clients, static fallbacks, tests with mocked HTTP                               |
-| M4  | Dashboard + votes | Parallel composition endpoint, vote upsert, summary aggregation                                                |
-| M5  | Web core          | Auth screens, onboarding wizard, dashboard shell, voting with optimistic updates                               |
-| M6  | Polish            | Dark terminal theme, sparklines, skeletons, empty/error/stale states, responsive pass                          |
-| M7  | Deploy            | Atlas cluster, Render service, Vercel project, smoke test, verify the read-only review user                    |
-| M8  | Docs              | README with setup + reviewer credentials, ARCHITECTURE, training-loop write-up, interaction summary            |
+| #   | Milestone         | Contents                                                                                            |
+| --- | ----------------- | --------------------------------------------------------------------------------------------------- |
+| M0  | Scaffold          | Workspaces, TS configs, ESLint/Prettier, CI skeleton, `.env.example`                                |
+| M1  | Auth              | Mongo connection, User model, register/login/refresh/logout, guard middleware, tests                |
+| M2  | Preferences       | Question definitions, preferences CRUD, onboarding gate                                             |
+| M3  | Integrations      | Cache helper, four integration clients, static fallbacks, tests with mocked HTTP                    |
+| M4  | Dashboard + votes | Parallel composition endpoint, vote upsert, summary aggregation                                     |
+| M5  | Web core          | Auth screens, onboarding wizard, dashboard shell, voting with optimistic updates                    |
+| M6  | Polish            | Dark terminal theme, sparklines, skeletons, empty/error/stale states, responsive pass               |
+| M7  | Deploy            | Atlas cluster, Render service, Vercel project, smoke test, verify the read-only review user         |
+| M8  | Docs              | README with setup + reviewer credentials, ARCHITECTURE, training-loop write-up, interaction summary |
 
 M1–M4 are backend and independently testable; M5–M6 are frontend. M7 happens early enough
 to catch deploy problems while there's still time to fix them — the deploy is a deliverable,
@@ -302,6 +302,22 @@ CI because both need external state a CI runner doesn't have (a live server, rea
 HF credentials) — both already load `apps/api/.env` via `--env-file-if-exists`, so if this
 ever changes, CI would need those secrets injected. Recorded here so the omission reads as a
 decision, not something dropped.
+
+### CI and both deploys install with `npm install`, not `npm ci`
+
+`package-lock.json` declares esbuild's platform packages as optional dependencies and records
+no entries for any of them. npm 10 filled the gap silently; npm 11, which ships with Node 24,
+refuses the lockfile outright — so pinning the runtime in M7 turned a dormant defect into a
+failed build on Render, and would have taken CI and Vercel with it.
+
+The gap cannot be closed from the Windows machine this is developed on. A full install records
+nothing for those packages, a lockfile-only resolve changes one line, and a from-scratch
+regenerate produces a **smaller** tree than the committed lockfile — the dangerous outcome,
+since it would install cleanly while quietly dropping dependencies.
+
+`npm install` honours every locked version and resolves only what is absent, so the cost is
+narrow: an install is no longer provably identical to the lockfile. **Open follow-up:**
+regenerate the lockfile from a real Linux install and restore `npm ci` in all three places.
 
 ## 8. Risk register
 
@@ -323,7 +339,7 @@ Answered by the developer on 2026-08-26:
 | ----------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | News source             | Cointelegraph RSS, not CryptoPanic                                                                        | No visible CryptoPanic free tier at signup time. RSS needs no key, no signup, no rate limit — verified live 2026-08-26 (200 OK, 30 items, valid RSS 2.0, works with no User-Agent). Per-coin filtering uses `cointelegraph.com/rss/tag/<slug>`. Coverage was spot-checked across all 15 curated assets on 2026-08-26: 13 work with the CoinGecko id as the slug, and `binancecoin` and `avalanche-2` return 404 and are overridden to `bnb` and `avalanche` (see §6). |
 | Reviewer DB access      | Read-only Atlas user, credentials sent **in the submission email**                                        | Nothing sensitive enters the public repo.                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Demo account            | **Reversed on 2026-08-28: none. Reviewers register their own account.**                                   | Signup, onboarding and first vote are the flow being graded, so a reviewer walking them is seeing the product rather than its residue. A seeded account also has to be kept truthful as the schema moves, and a stale one misrepresents the app more than an empty one does. The cost is accepted: the analytics view and the `Vote.context` snapshot are empty until the reviewer votes, so the README has to say where to look. |
+| Demo account            | **Reversed on 2026-08-28: none. Reviewers register their own account.**                                   | Signup, onboarding and first vote are the flow being graded, so a reviewer walking them is seeing the product rather than its residue. A seeded account also has to be kept truthful as the schema moves, and a stale one misrepresents the app more than an empty one does. The cost is accepted: the analytics view and the `Vote.context` snapshot are empty until the reviewer votes, so the README has to say where to look.                                     |
 | Domain                  | Default `*.vercel.app` is fine                                                                            | No DNS work. Backend stays on `*.onrender.com`.                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Refresh-token transport | httpOnly cookie, with the API proxied under the web app's own domain                                      | See "One site, not two" below.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Refresh-token storage   | HMAC-SHA256 with a server-side pepper (`REFRESH_TOKEN_PEPPER`), replacing the unused `JWT_REFRESH_SECRET` | The refresh token is a random string, not a JWT, so a JWT secret had no consumer. The pepper means read-only database access alone cannot match a captured token to its row — which matters, because M7 hands exactly that access to a reviewer.                                                                                                                                                                                                                      |
