@@ -41,6 +41,28 @@ if (HTMLDialogElement.prototype.showModal === undefined) {
 const OBSERVED_WIDTH_PX = 64;
 const OBSERVED_HEIGHT_PX = 20;
 
+/**
+ * jsdom implements no media query evaluation at all — matchMedia is simply
+ * absent. Stubbed to always report no match, which is also the layout whose
+ * DOM order equals the given section order directly: the two-column split
+ * reorders the DOM into left-column-then-right-column, which would make
+ * getAllByRole('heading', …) return sections out of the order a test passed
+ * in.
+ */
+if (typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}
+
 if (typeof globalThis.ResizeObserver === 'undefined') {
   const observedSize: ResizeObserverSize = {
     inlineSize: OBSERVED_WIDTH_PX,

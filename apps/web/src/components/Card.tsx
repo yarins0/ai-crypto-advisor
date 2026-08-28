@@ -9,15 +9,17 @@ interface CardProps {
   source: ContentSource;
   fetchedAt: string;
   action?: ReactNode;
+  dragHandle?: ReactNode;
   children: ReactNode;
 }
 
-export function Card({ title, source, fetchedAt, action, children }: CardProps) {
+export function Card({ title, source, fetchedAt, action, dragHandle, children }: CardProps) {
   return (
     <section className="rounded-xl border border-line surface-card bg-surface-raised p-4 shadow-raised transition-colors duration-200 hover:border-line-strong">
       {/* Wraps rather than compressing: on a narrow screen the staleness badge
           drops to its own line instead of squeezing the title to a few glyphs. */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {dragHandle}
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">{title}</h2>
         <StaleBadge source={source} fetchedAt={fetchedAt} />
         {action === undefined ? null : <div className="ml-auto">{action}</div>}

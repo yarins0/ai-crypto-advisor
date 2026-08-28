@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { MemeSection } from '@aca/shared';
 
 import { Card } from '../../components/Card.js';
@@ -7,9 +9,10 @@ import { useRerollMeme } from './use-dashboard.js';
 interface MemeCardProps {
   section: MemeSection;
   preferenceVersion: number;
+  dragHandle?: ReactNode;
 }
 
-export function MemeCard({ section, preferenceVersion }: MemeCardProps) {
+export function MemeCard({ section, preferenceVersion, dragHandle }: MemeCardProps) {
   const rerollMutation = useRerollMeme();
   const meme = section.data;
 
@@ -18,6 +21,7 @@ export function MemeCard({ section, preferenceVersion }: MemeCardProps) {
       title="Meme"
       source={section.source}
       fetchedAt={section.fetchedAt}
+      dragHandle={dragHandle}
       action={
         <button
           type="button"

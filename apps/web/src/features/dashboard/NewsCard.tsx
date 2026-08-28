@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { NewsSection } from '@aca/shared';
 
 import { Card } from '../../components/Card.js';
@@ -7,18 +9,24 @@ import { VoteButtons } from '../votes/VoteButtons.js';
 interface NewsCardProps {
   section: NewsSection;
   preferenceVersion: number;
+  dragHandle?: ReactNode;
 }
 
-export function NewsCard({ section, preferenceVersion }: NewsCardProps) {
+export function NewsCard({ section, preferenceVersion, dragHandle }: NewsCardProps) {
   return (
-    <Card title="News" source={section.source} fetchedAt={section.fetchedAt}>
+    <Card
+      title="News"
+      source={section.source}
+      fetchedAt={section.fetchedAt}
+      dragHandle={dragHandle}
+    >
       {section.data.length === 0 ? (
         <p className="text-sm text-ink-faint">No headlines for your topics right now.</p>
       ) : (
-        // Bounded only from lg, where the columns exist and a card taller than
-        // half the grid strands the ones after it. A single-column phone has no
-        // balancer to serve, and overscroll-contain there would swallow the
-        // touch gesture that scrolls the page.
+        // Bounded only from lg, where the two-column grid exists and an
+        // unbounded list would otherwise set that whole row's height. A
+        // single-column phone has no row to protect, and overscroll-contain
+        // there would swallow the touch gesture that scrolls the page.
         // -mr-2 with pr-2 relocates the scrollbar past the card's padding;
         // padding alone insets the content but never moves the scrollbar.
         <ul className="scroll-slim -mr-2 divide-y divide-line pr-2 lg:max-h-[28rem] lg:overflow-y-auto lg:overscroll-contain">

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { PricesSection } from '@aca/shared';
 
 import { Card } from '../../components/Card.js';
@@ -8,18 +10,24 @@ import { VoteButtons } from '../votes/VoteButtons.js';
 interface PricesCardProps {
   section: PricesSection;
   preferenceVersion: number;
+  dragHandle?: ReactNode;
 }
 
-export function PricesCard({ section, preferenceVersion }: PricesCardProps) {
+export function PricesCard({ section, preferenceVersion, dragHandle }: PricesCardProps) {
   return (
-    <Card title="Prices" source={section.source} fetchedAt={section.fetchedAt}>
+    <Card
+      title="Prices"
+      source={section.source}
+      fetchedAt={section.fetchedAt}
+      dragHandle={dragHandle}
+    >
       {section.data.length === 0 ? (
         <p className="text-sm text-ink-faint">No coins matched your selected assets.</p>
       ) : (
         // Bounded from lg for the same reason NewsCard's list is: with the asset
         // cap now equal to the full curated list, "select all" serves as many
-        // rows as the news feed does, and an unbounded card just as easily
-        // defeats the column balancer that only exists at that width.
+        // rows as the news feed does, and an unbounded card would set the
+        // height of its whole grid row.
         <ul className="scroll-slim -mr-2 divide-y divide-line pr-2 lg:max-h-[28rem] lg:overflow-y-auto lg:overscroll-contain">
           {section.data.map((coin) => (
             <li

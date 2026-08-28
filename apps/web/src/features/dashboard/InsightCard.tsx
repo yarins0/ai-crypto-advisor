@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { InsightSection } from '@aca/shared';
 
 import { Card } from '../../components/Card.js';
@@ -7,9 +9,10 @@ import { VoteButtons } from '../votes/VoteButtons.js';
 interface InsightCardProps {
   section: InsightSection;
   preferenceVersion: number;
+  dragHandle?: ReactNode;
 }
 
-export function InsightCard({ section, preferenceVersion }: InsightCardProps) {
+export function InsightCard({ section, preferenceVersion, dragHandle }: InsightCardProps) {
   // A null model means the deterministic template produced this, not an LLM.
   // Saying so is the honest version of a section that can silently degrade.
   const attribution =
@@ -18,7 +21,12 @@ export function InsightCard({ section, preferenceVersion }: InsightCardProps) {
       : `Written by ${formatModelName(section.data.model)}`;
 
   return (
-    <Card title="Insight of the day" source={section.source} fetchedAt={section.fetchedAt}>
+    <Card
+      title="Insight of the day"
+      source={section.source}
+      fetchedAt={section.fetchedAt}
+      dragHandle={dragHandle}
+    >
       <p className="text-base leading-relaxed text-ink">{section.data.text}</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-xs text-ink-faint">{attribution}</p>

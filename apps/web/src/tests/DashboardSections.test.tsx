@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { DashboardResponse } from '@aca/shared';
+import type { ContentType, DashboardResponse } from '@aca/shared';
 
 import { DashboardSections } from '../features/dashboard/DashboardSections.js';
 import { fetchVotes } from '../features/votes/api.js';
@@ -47,10 +47,15 @@ const ALL_SECTIONS: DashboardResponse = {
   generatedAt: FETCHED_AT,
 };
 
-function renderSections(dashboard: DashboardResponse = ALL_SECTIONS): void {
+const DEFAULT_ORDER: ContentType[] = ['news', 'prices', 'insight', 'memes'];
+
+function renderSections(
+  dashboard: DashboardResponse = ALL_SECTIONS,
+  order: ContentType[] = DEFAULT_ORDER,
+): void {
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <DashboardSections dashboard={dashboard} />
+      <DashboardSections dashboard={dashboard} order={order} onReorder={vi.fn()} />
     </QueryClientProvider>,
   );
 }
@@ -64,10 +69,7 @@ describe('DashboardSections', () => {
     vi.mocked(fetchVotes).mockResolvedValue({ votes: [] });
   });
 
-  // The grid is a CSS multi-column, which fills greedily in DOM order and can
-  // only break between cards. News is the one section of unbounded length, so
-  // anything rendered before it is stranded in a column of its own.
-  it('renders the unbounded section first, which is what lets the columns balance', () => {
+  it('renders in the shared contentTypes order by default', () => {
     renderSections();
 
     expect(renderedTitles()).toEqual(['News', 'Prices', 'Insight of the day', 'Meme']);
@@ -80,5 +82,11 @@ describe('DashboardSections', () => {
     });
 
     expect(renderedTitles()).toEqual(['Prices', 'Insight of the day']);
+  });
+
+  it('renders in the caller-supplied order rather than the default', () => {
+    renderSections(ALL_SECTIONS, ['memes', 'news', 'insight', 'prices']);
+
+    expect(renderedTitles()).toEqual(['Meme', 'News', 'Insight of the day', 'Prices']);
   });
 });
