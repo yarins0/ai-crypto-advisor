@@ -24,10 +24,11 @@ services:
     healthCheckPath: /api/health
 
     envVars:
-      # engines.node is a range, which Render does not resolve; the major must be
-      # named explicitly or it falls back to its own default.
+      # Matches engines.node. Stated here as well because a deploy should not rest
+      # on the host's reading of a semver range, and a silent fallback to another
+      # major is the kind of drift that only surfaces in production.
       - key: NODE_VERSION
-        value: '22'
+        value: '24'
 
       - key: NODE_ENV
         value: production
