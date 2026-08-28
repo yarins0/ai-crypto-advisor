@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { Sparkline, getSparklineColorClass } from '../components/Sparkline.js';
 
@@ -37,11 +37,15 @@ describe('getSparklineColorClass', () => {
 });
 
 describe('Sparkline', () => {
+  // Transforming recharts and its d3 tree on demand costs seconds on a cold run.
+  // Warming it here rather than inside the test keeps that one-off cost out of
+  // the per-test budget, which it was otherwise consuming whole.
+  beforeAll(async () => {
+    await import('../components/SparklineChart.js');
+  }, 60_000);
+
   // The chart arrives on its own chunk, so the series is drawn a tick after mount.
   it('draws the seven-point series the fallbacks return', async () => {
-    // Warmed first so the assertion races only React's re-render, not Vite
-    // transforming recharts and its d3 tree on demand.
-    await import('../components/SparklineChart.js');
     const container = renderSparkline(FALLBACK_SERIES);
 
     // A failure here has been seen to burn the whole budget, so it is a hang
